@@ -158,3 +158,18 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Ignore DataSpell IDE files
+.idea/
+
+# Ignore Python notebooks checkpoints
+*.ipynb_checkpoints/
+
+# Ignore Python notebook metadata
+*.ipynb_meta/
+
+# Ignore DataSpell project settings
+/.dataspell/
+
+# Ignore virtual environment
+venv/
