@@ -37,7 +37,7 @@ def image_setup(image_name):
 
 
 def main():
-    original, gray = image_setup('t2.jpg')
+    original, gray = image_setup('t2_55.jpg')
     params = get_blob_params()
     if cv2.__version__.startswith('2.'):
         detector = cv2.SimpleBlobDetector(params)
