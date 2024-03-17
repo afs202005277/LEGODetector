@@ -124,7 +124,6 @@ def blob_detection(gray_image):
         detector = cv2.SimpleBlobDetector_create(params)
 
     keypoints = detector.detect(gray_image)
-    print(len(keypoints))
 
     img_key_points = cv2.drawKeypoints(
         gray_image,
@@ -134,9 +133,9 @@ def blob_detection(gray_image):
         cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS,
     )
 
-    cv2.imshow("Keypoints", img_key_points)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if DISPLAY:
+        display_images([img_key_points], ['Keypoints'])
+    return len(keypoints)
 
 
 def color_detection(image):
@@ -175,10 +174,8 @@ def color_detection(image):
         if contours:
             distinct_colors.add(color_name)
 
-    # Display the image with contours
-    cv2.imshow("Image with Contours", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if DISPLAY:
+        display_images([image], ["Image with Contours"])
 
     return len(distinct_colors)
 
@@ -211,16 +208,33 @@ def make_image_brighter(image, factor):
     return modified_image
 
 
-def main(filename):
-    # original, gray = image_setup(filename)
-    # blob_detection(gray)
+def detect_pieces_v1(filename):
+    _, gray = image_setup(filename)
+    return blob_detection(gray)
+
+
+def detect_pieces_v2(filename):
     without_background = remove_background(filename)
-    # gray_wo_bgr = cv2.cvtColor(without_background, cv2.COLOR_BGR2GRAY)
-    # blob_detection(cv2.equalizeHist(gray_wo_bgr))
-    # print(color_detection(original))
-    # print(color_detection(without_background))
-    # remove_background(filename)
+    gray_wo_bgr = cv2.cvtColor(without_background, cv2.COLOR_BGR2GRAY)
+    return blob_detection(cv2.equalizeHist(gray_wo_bgr))
+
+
+def count_colors_v1(filename):
+    original, _ = image_setup(filename)
+    return color_detection(original)
+
+
+def count_colors_v2(filename):
+    without_background = remove_background(filename)
+    return color_detection(without_background)
+
+
+def main(filename):
+    print(detect_pieces_v1(filename))
+    print(detect_pieces_v2(filename))
+    print(count_colors_v1(filename))
+    print(count_colors_v1(filename))
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main('t2_55.jpg')
