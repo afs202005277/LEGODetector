@@ -3,8 +3,8 @@ import pandas as pd
 import main
 
 TEST_COUNT_BLOCKS = True
-TEST_COUNT_COLORS = True
-NUM_TESTS = 10  # max is 50
+TEST_COUNT_COLORS = False
+NUM_TESTS = 50  # max is 50
 
 if __name__ == '__main__':
     images_folder = "samples-task1/samples"
@@ -27,7 +27,10 @@ if __name__ == '__main__':
 
     blocks_dict = dict()
     colors_dict = dict()
+    i = 1
     for image_path, (num_blocks, num_colors) in test_values:
+        print(i)
+        i += 1
         if TEST_COUNT_BLOCKS:
             for count_blocks_name in count_blocks_functions:
                 count_blocks = getattr(main, count_blocks_name)
