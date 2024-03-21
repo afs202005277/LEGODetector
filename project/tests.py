@@ -144,7 +144,8 @@ def grid(images_folder, values_folder):
     df = pd.DataFrame(results)
     df.to_csv('grid.csv', index=False)
 
-    errors = (df.groupby('image_path')['error'].mean()).sort_values()
+    errors = df.groupby(['median_blur', 'gaussian_blur', 'sigma', 'canny_min', 'canny_max', 'dilation_it'])[
+        'error'].mean().reset_index()
     errors.to_csv('errors.csv', index=False)
 
 
