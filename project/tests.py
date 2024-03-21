@@ -103,35 +103,40 @@ def prepare_image(image_path):
     return cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
 
-def process_combination(image_path, num_blocks, parameters, param_combination):
+def process_combination(image_path, num_blocks, param_combinations):
     results = []
     image = prepare_image(image_path)
-    for idx, combo in enumerate(param_combination):
-        param_dict = {key: value for key, value in zip(parameters.keys(), combo)}
-        result = GridExperiment.evaluate_function(image.copy(), param_dict)
-        results.append({**param_dict, 'image_path': image_path, 'error': calculate_error(result, num_blocks)})
+    for params in param_combinations:
+        try:
+            result = GridExperiment.evaluate_function(image.copy(), params)
+            results.append({**params, 'image_path': image_path, 'error': calculate_error(result, num_blocks)})
+        except Exception:
+            pass
     return results
 
 
 def grid(images_folder, values_folder):
     test_values = get_expected_values(images_folder, values_folder)
     parameters = dict()
-    parameters['median_blur'] = [3, 5]
-    parameters['gaussian_blur'] = [3, 5]
-    parameters['sigma'] = [0, 0.5]
-    parameters['canny_min'] = [50, 75]
-    parameters['canny_max'] = [100, 125]
-    parameters['dilation_it'] = [1, 3]
+    parameters['median_blur'] = [3, 7, 15, 31, 51]
+    parameters['gaussian_blur'] = [3, 5, 7, 9, 11, 15, 21]
+    parameters['sigma'] = [0, 2, 2.5, 3]
+    parameters['canny_min'] = [50, 75, 100, 125, 150, 175, 200]
+    parameters['canny_max'] = [100, 125, 150, 175, 200, 225, 250]
+    parameters['dilation_it'] = [5, 10, 20, 50, 80]
 
-    # Generate all possible combinations of values
-    param_combinations = list(itertools.product(*parameters.values()))
+    param_combinations = []
+    for combo in list(itertools.product(*parameters.values())):
+        param_dict = {key: value for key, value in zip(parameters.keys(), combo)}
+        if param_dict['canny_min'] < param_dict['canny_max']:
+            param_combinations.append(param_dict)
+
     results = []
-
     with ProcessPoolExecutor() as executor:
         futures = []
         done = 0
         for image_path, (num_blocks, num_colors) in test_values:
-            future = executor.submit(process_combination, image_path, num_blocks, parameters, param_combinations)
+            future = executor.submit(process_combination, image_path, num_blocks, param_combinations)
             futures.append(future)
 
         for future in as_completed(futures):
