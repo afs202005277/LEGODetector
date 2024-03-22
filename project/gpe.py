@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import main
 
 
 def is_black(pixel):
@@ -55,7 +56,7 @@ def db_scan(image):
                     clusters = clear_clusters(image, clusters, ratio)
 
     clusters = clear_clusters(image, clusters, ratio)
-    return len(clusters)
+    return clusters
 
 
 if __name__ == "__main__":
@@ -69,7 +70,7 @@ if __name__ == "__main__":
     dim = (width, height)
     img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
 
-    img = cv2.medianBlur(img, 15)
+    img = cv2.medianBlur(img, 5)
     # img = cv2.GaussianBlur(img, (5, 5), sigmaX=0)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -88,10 +89,15 @@ if __name__ == "__main__":
     # result = cv2.GaussianBlur(result, (41, 41), sigmaX=0)
 
     # Detect how many pieces are in the image
-    print(db_scan(result))
+    clusters = db_scan(result)
+    result_hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
+    color = []
+    for cluster in clusters:
+        color.append(result_hsv[cluster[len(cluster) // 2][0], cluster[len(cluster[0]) // 2][1]])
+
+    print(color)
 
     cv2.imshow('Original Image', img)
-    cv2.imshow('Edges', edges)
     cv2.imshow('Filled Contours', result)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
