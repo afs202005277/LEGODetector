@@ -1,13 +1,45 @@
 import sys
+import time
 
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from utils import display_images
+import gpe
 
 DISPLAY = True
 TARGET_WIDTH = 944
 TARGET_HEIGHT = 1133
+
+
+def remove_background_canny(image_path):
+    image = cv2.imread(image_path)
+
+    # resize image
+    ratio = image.shape[1] / image.shape[0]
+    height = 800
+    width = int(height * ratio)
+
+    dim = (width, height)
+    image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+    image = cv2.medianBlur(image, 15)
+    image = cv2.GaussianBlur(image, (5, 5), sigmaX=0)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 100, 150)
+
+    edges = cv2.dilate(edges, None, iterations=10)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    result = np.zeros_like(image)
+    for contour in contours:
+        if cv2.contourArea(contour) > 0:
+            cv2.drawContours(result, [contour], 0, (255, 255, 255), cv2.FILLED)
+
+    result = cv2.bitwise_and(image, result)
+
+    return result
 
 
 def get_blob_params():
@@ -219,6 +251,11 @@ def detect_pieces_v2(filename):
     return blob_detection(cv2.equalizeHist(gray_wo_bgr))
 
 
+def detect_pieces_v3(filename):
+    without_background = remove_background_canny(filename)
+    return gpe.db_scan(without_background)
+
+
 def count_colors_v1(filename):
     original, _ = image_setup(filename)
     return color_detection(original)
@@ -230,11 +267,14 @@ def count_colors_v2(filename):
 
 
 def main(filename):
-    print(detect_pieces_v1(filename))
-    print(detect_pieces_v2(filename))
-    print(count_colors_v1(filename))
-    print(count_colors_v1(filename))
+    # print(detect_pieces_v1(filename))
+    # print(detect_pieces_v2(filename))
+    start = time.time()
+    print(detect_pieces_v3(filename))
+    print("Time taken: ", time.time() - start, "seconds")
+    # print(count_colors_v1(filename))
+    # print(count_colors_v1(filename))
 
 
 if __name__ == "__main__":
-    main('t2_55.jpg')
+    main('44.jpg')
