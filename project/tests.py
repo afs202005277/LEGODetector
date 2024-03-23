@@ -1,5 +1,7 @@
 import itertools
 import os
+import time
+
 import pandas as pd
 import main
 import GridExperiment
@@ -115,6 +117,14 @@ def process_combination(image_path, num_blocks, param_combinations):
     return results
 
 
+def store_results(data):
+    df = pd.DataFrame(data)
+    df.to_csv('grid.csv', index=False)
+    errors = df.groupby(['median_blur', 'gaussian_blur', 'sigma', 'canny_min', 'canny_max', 'dilation_it'])[
+        'error'].mean().reset_index()
+    errors.to_csv('errors.csv', index=False)
+
+
 def grid(images_folder, values_folder):
     test_values = get_expected_values(images_folder, values_folder)
     parameters = dict()
@@ -123,7 +133,7 @@ def grid(images_folder, values_folder):
     parameters['sigma'] = [0, 2, 2.5, 3]
     parameters['canny_min'] = [50, 75, 100, 125, 150, 175, 200]
     parameters['canny_max'] = [100, 125, 150, 175, 200, 225, 250]
-    parameters['dilation_it'] = [5, 10, 20, 50, 80]
+    parameters['dilation_it'] = [5, 6, 10, 13]
 
     param_combinations = []
     for combo in list(itertools.product(*parameters.values())):
@@ -132,26 +142,22 @@ def grid(images_folder, values_folder):
             param_combinations.append(param_dict)
 
     results = []
+
     with ProcessPoolExecutor() as executor:
         futures = []
         done = 0
         for image_path, (num_blocks, num_colors) in test_values:
             future = executor.submit(process_combination, image_path, num_blocks, param_combinations)
             futures.append(future)
-
         for future in as_completed(futures):
             done += 1
             print(f'{done}/{len(futures)}')
             results.extend(future.result())
+            store_results(results)
     print("out")
     executor.shutdown()
 
-    df = pd.DataFrame(results)
-    df.to_csv('grid.csv', index=False)
-
-    errors = df.groupby(['median_blur', 'gaussian_blur', 'sigma', 'canny_min', 'canny_max', 'dilation_it'])[
-        'error'].mean().reset_index()
-    errors.to_csv('errors.csv', index=False)
+    store_results(results)
 
 
 if __name__ == '__main__':
