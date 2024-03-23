@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from utils import display_images
 
+SAME_COLOR_THRESHOLD = 40
+
 
 def is_black(pixel):
     return pixel[0] == 0 and pixel[1] == 0 and pixel[2] == 0
@@ -71,6 +73,33 @@ def db_scan(image):
     clusters = clear_clusters(image, clusters, ratio)
     return clusters
 
+def color_scan(clusters, image):
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    c = 0
+    for cluster in clusters:
+        color = []
+        for x, y in cluster:
+            hue = image_hsv[x][y][0]
+            found = False
+            for co in color:
+                if abs(int(co) - int(hue)) < SAME_COLOR_THRESHOLD:
+                    found = True
+                    break
+            if not found:
+                color.append(hue)
+        c += len(color) - 1
+        print(color)
+    return c
+            
+        
+def grab_cut(image, rect):
+    mask = np.zeros(image.shape[:2], np.uint8)
+    bgdModel = np.zeros((1, 65), np.float64)
+    fgdModel = np.zeros((1, 65), np.float64)
+    cv2.grabCut(image, mask, rect, bgdModel, fgdModel, 5, cv2.GC_INIT_WITH_RECT)
+    mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype('uint8')
+    return image * mask2[:, :, np.newaxis]
+
 
 def draw_bb(img, contours):
     img_clone = img.copy()
@@ -105,7 +134,8 @@ if __name__ == "__main__":
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     img_bb, rectangles = draw_bb(img, contours)
-    display_images([img_bb], ["Bounding Boxes"], (600, 800))
+    #display_images([img_bb], ["Bounding Boxes"], (600, 800))
+
 
     result = np.zeros_like(img)
     for contour in contours:
@@ -118,14 +148,20 @@ if __name__ == "__main__":
 
     # Detect how many pieces are in the image
     clusters = db_scan(result)
-    result_hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
-    color = []
-    for cluster in clusters:
-        color.append(result_hsv[cluster[len(cluster) // 2][0], cluster[len(cluster[0]) // 2][1]])
+    #n = color_scan(clusters, result)
+    #print(n)
+    
+        #grab cut for each rectangle
+    result2 = np.zeros_like(img)
+    for rectangle in rectangles:
+        x, y, w, h = rectangle['x'], rectangle['y'], rectangle['w'], rectangle['h']
+        rect = (x, y, w, h)
+        grab_cut_img = grab_cut(img, rect)
+        result2 = cv2.bitwise_or(result2, grab_cut_img)
 
-    print(color)
 
     cv2.imshow('Original Image', img)
     cv2.imshow('Filled Contours', result)
+    cv2.imshow('Grab Cut', result2)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
