@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from utils import display_images
 
 
 def is_black(pixel):
@@ -7,10 +8,23 @@ def is_black(pixel):
 
 
 def same_cluster(image, i, j, cluster, ratio=1):
-    neighbors = [(i - ratio, j - ratio), (i - ratio, j), (i - ratio, j + ratio), (i, j - ratio), (i, j + ratio),
-                 (i + ratio, j - ratio), (i + ratio, j), (i + ratio, j + ratio)]
+    neighbors = [
+        (i - ratio, j - ratio),
+        (i - ratio, j),
+        (i - ratio, j + ratio),
+        (i, j - ratio),
+        (i, j + ratio),
+        (i + ratio, j - ratio),
+        (i + ratio, j),
+        (i + ratio, j + ratio),
+    ]
     for neighbor in neighbors:
-        if neighbor[0] >= 0 and neighbor[0] < image.shape[0] and neighbor[1] >= 0 and neighbor[1] < image.shape[1]:
+        if (
+            neighbor[0] >= 0
+            and neighbor[0] < image.shape[0]
+            and neighbor[1] >= 0
+            and neighbor[1] < image.shape[1]
+        ):
             if neighbor in cluster:
                 return True
     return False
@@ -55,11 +69,22 @@ def db_scan(image):
                     clusters = clear_clusters(image, clusters, ratio)
 
     clusters = clear_clusters(image, clusters, ratio)
-    return len(clusters)
+    return clusters
+
+
+def draw_bb(img, contours):
+    img_clone = img.copy()
+    rectangles = []
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        rectangles.append({"x": x, "y": y, "w": w, "h": h})
+        cv2.rectangle(img_clone, (x, y), (x + w, y + h), (255, 255, 255), 2)
+
+    return img_clone, rectangles
 
 
 if __name__ == "__main__":
-    img = cv2.imread('44.jpg')
+    img = cv2.imread("44.jpg")
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
@@ -69,7 +94,7 @@ if __name__ == "__main__":
     dim = (width, height)
     img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
 
-    img = cv2.medianBlur(img, 15)
+    img = cv2.medianBlur(img, 5)
     # img = cv2.GaussianBlur(img, (5, 5), sigmaX=0)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -78,6 +103,10 @@ if __name__ == "__main__":
     edges = cv2.dilate(edges, None, iterations=10)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    img_bb, rectangles = draw_bb(img, contours)
+    display_images([img_bb], ["Bounding Boxes"], (600, 800))
+
     result = np.zeros_like(img)
     for contour in contours:
         if cv2.contourArea(contour) > 0:
@@ -88,10 +117,15 @@ if __name__ == "__main__":
     # result = cv2.GaussianBlur(result, (41, 41), sigmaX=0)
 
     # Detect how many pieces are in the image
-    print(db_scan(result))
+    clusters = db_scan(result)
+    result_hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
+    color = []
+    for cluster in clusters:
+        color.append(result_hsv[cluster[len(cluster) // 2][0], cluster[len(cluster[0]) // 2][1]])
+
+    print(color)
 
     cv2.imshow('Original Image', img)
-    cv2.imshow('Edges', edges)
     cv2.imshow('Filled Contours', result)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
