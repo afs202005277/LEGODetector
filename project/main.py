@@ -253,7 +253,7 @@ def detect_pieces_v2(filename):
 
 def detect_pieces_v3(filename):
     without_background = remove_background_canny(filename)
-    return gpe.db_scan(without_background)
+    return len(gpe.db_scan(without_background))
 
 def detect_pieces_v4(filename):
     without_background = remove_background_canny(filename)
