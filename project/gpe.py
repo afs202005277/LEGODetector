@@ -1,8 +1,11 @@
 import cv2
 import numpy as np
 from utils import display_images
+import math
 
-SAME_COLOR_THRESHOLD = 40
+SAME_COLOR_THRESHOLD = 100
+SAME_COLOR_THRESHOLD2 = 70
+MIN_POINTS_COLOR = 50
 
 
 def is_black(pixel):
@@ -43,6 +46,24 @@ def merge_clusters(image, clusters, ratio):
                     return clusters
     return clusters
 
+def merge_colors(colors):
+    for i in range(len(colors)):
+        for j in range(i + 1, len(colors)):
+            if color_dist(colors[i], colors[j]) < SAME_COLOR_THRESHOLD2:
+                colors[i][0] = (int(colors[i][0]) + int(colors[j][0])) // 2
+                colors[i][1] = (int(colors[i][1]) + int(colors[j][1])) // 2
+                colors[i][2] = (int(colors[i][2]) + int(colors[j][2])) // 2
+                colors.pop(j)
+                return colors
+    return colors
+
+def clear_colors(colors):
+    temp = -1
+    while temp != len(colors):
+        temp = len(colors)
+        colors = merge_colors(colors)
+    return colors
+
 
 def clear_clusters(image, clusters, ratio):
     temp = -1
@@ -54,7 +75,7 @@ def clear_clusters(image, clusters, ratio):
 
 def db_scan(image):
     clusters = []
-    ratio = image.shape[0] // 100
+    ratio = image.shape[0] // 150
     # For every pixel in the image
     for i in range(0, image.shape[0], ratio):
         for j in range(0, image.shape[1], ratio):
@@ -75,24 +96,42 @@ def db_scan(image):
 
 
 def color_scan(clusters, image):
-    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     c = 0
     for cluster in clusters:
-        color = []
+        colors = []
         for x, y in cluster:
-            hue = image_hsv[x][y][0]
+            color = image[x][y]
             found = False
-            for co in color:
-                if abs(int(co) - int(hue)) < SAME_COLOR_THRESHOLD:
+            for i in range(len(colors)):
+                    
+                if color_dist(color, colors[i]) < SAME_COLOR_THRESHOLD:
                     found = True
+                    colors[i][0] = (int(colors[i][0]) + int(color[0])) // 2
+                    colors[i][1] = (int(colors[i][1]) + int(color[1])) // 2
+                    colors[i][2] = (int(colors[i][2]) + int(color[2])) // 2
                     break
             if not found:
-                color.append(hue)
-        c += len(color) - 1
-        print(color)
+                colors.append(color)
+        colors = clear_colors(colors)
+
+        for i in range(len(colors)):
+            if points_with_color(colors[i], cluster, image) < MIN_POINTS_COLOR:
+                colors.pop(i)
+        print(colors)
+        c += max(len(colors) - 1, 1)
     return c
 
+def color_dist(color1, color2):
+    return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (int(color1[2]) - int(color2[2])) ** 2)
+            
 
+def points_with_color(color, cluster, image):
+    c = 0
+    for point in cluster:
+        if color_dist(color, image[point[0]][point[1]]) < SAME_COLOR_THRESHOLD2:
+            c += 1
+    return c
+        
 def grab_cut(image, rect):
     mask = np.zeros(image.shape[:2], np.uint8)
     bgdModel = np.zeros((1, 65), np.float64)
@@ -114,18 +153,18 @@ def draw_bb(img, contours):
 
 
 if __name__ == "__main__":
-    img = cv2.imread("44.jpg")
+    img = cv2.imread("6.jpg")
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
     width = int(height * ratio)
-    print(width, height)
 
     dim = (width, height)
     img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
 
-    img = cv2.medianBlur(img, 5)
-    # img = cv2.GaussianBlur(img, (5, 5), sigmaX=0)
+
+    img = cv2.medianBlur(img, 11)
+    img = cv2.GaussianBlur(img, (3, 3), sigmaX=0)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 100, 150)
@@ -134,8 +173,9 @@ if __name__ == "__main__":
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    img_bb, rectangles = draw_bb(img, contours)
-    # display_images([img_bb], ["Bounding Boxes"], (600, 800))
+    #img_bb, rectangles = draw_bb(img, contours)
+    #display_images([img_bb], ["Bounding Boxes"], (600, 800))
+
 
     result = np.zeros_like(img)
     for contour in contours:
@@ -148,19 +188,19 @@ if __name__ == "__main__":
 
     # Detect how many pieces are in the image
     clusters = db_scan(result)
-    # n = color_scan(clusters, result)
-    # print(n)
-
-    # grab cut for each rectangle
-    result2 = np.zeros_like(img)
+    n = color_scan(clusters, result)
+    print(n)
+    
+   #grab cut for each rectangle´
+    
+    '''result2 = np.zeros_like(img)
     for rectangle in rectangles:
         x, y, w, h = rectangle["x"], rectangle["y"], rectangle["w"], rectangle["h"]
         rect = (x, y, w, h)
         grab_cut_img = grab_cut(img, rect)
-        result2 = cv2.bitwise_or(result2, grab_cut_img)
-
-    cv2.imshow("Original Image", img)
-    cv2.imshow("Filled Contours", result)
-    cv2.imshow("Grab Cut", result2)
+        result2 = cv2.bitwise_or(result2, grab_cut_img)'''
+    cv2.imshow('Original Image', img)
+    cv2.imshow('Filled Contours', result)
+    #cv2.imshow('Grab Cut', result2)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
