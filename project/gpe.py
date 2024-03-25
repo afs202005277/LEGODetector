@@ -116,9 +116,13 @@ def color_scan(clusters, image):
                 colors.append(color)
         colors = clear_colors(colors)
 
-        for i in range(len(colors)):
-            if points_with_color(colors[i], cluster, image) < MIN_POINTS_COLOR:
-                colors.pop(i)
+        temp = -1
+        while temp != len(colors):
+            temp = len(colors)
+            for i in range(len(colors)):
+                if points_with_color(colors[i], cluster, image) < MIN_POINTS_COLOR:
+                    colors.pop(i)
+                    break
 
         for color in colors:
             full_colors.append(color)

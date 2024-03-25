@@ -10,7 +10,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 TEST_COUNT_BLOCKS = True
 TEST_COUNT_COLORS = True
-NUM_TESTS = 3  # max is 50
+NUM_TESTS = 50  # max is 50
 TEST_TARGET = main
 
 
