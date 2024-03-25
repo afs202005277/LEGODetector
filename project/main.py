@@ -255,6 +255,12 @@ def detect_pieces_v3(filename):
     without_background = remove_background_canny(filename)
     return gpe.db_scan(without_background)
 
+def detect_pieces_v4(filename):
+    without_background = remove_background_canny(filename)
+    clusters = gpe.db_scan(without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background)
+    return pieces
+
 
 def count_colors_v1(filename):
     original, _ = image_setup(filename)
@@ -265,12 +271,18 @@ def count_colors_v2(filename):
     without_background = remove_background(filename)
     return color_detection(without_background)
 
+def count_colors_v3(filename):
+    without_background = remove_background_canny(filename)
+    clusters = gpe.db_scan(without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background)
+    return colors
+
 
 def main(filename):
     # print(detect_pieces_v1(filename))
     # print(detect_pieces_v2(filename))
     start = time.time()
-    print(detect_pieces_v3(filename))
+    print(detect_pieces_v4(filename))
     print("Time taken: ", time.time() - start, "seconds")
     # print(count_colors_v1(filename))
     # print(count_colors_v1(filename))

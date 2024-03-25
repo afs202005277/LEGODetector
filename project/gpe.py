@@ -5,6 +5,7 @@ import math
 
 SAME_COLOR_THRESHOLD = 100
 SAME_COLOR_THRESHOLD2 = 70
+SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 50
 
 
@@ -46,10 +47,10 @@ def merge_clusters(image, clusters, ratio):
                     return clusters
     return clusters
 
-def merge_colors(colors):
+def merge_colors(colors, threshold=SAME_COLOR_THRESHOLD2):
     for i in range(len(colors)):
         for j in range(i + 1, len(colors)):
-            if color_dist(colors[i], colors[j]) < SAME_COLOR_THRESHOLD2:
+            if color_dist(colors[i], colors[j]) < threshold:
                 colors[i][0] = (int(colors[i][0]) + int(colors[j][0])) // 2
                 colors[i][1] = (int(colors[i][1]) + int(colors[j][1])) // 2
                 colors[i][2] = (int(colors[i][2]) + int(colors[j][2])) // 2
@@ -57,11 +58,11 @@ def merge_colors(colors):
                 return colors
     return colors
 
-def clear_colors(colors):
+def clear_colors(colors, threshold=SAME_COLOR_THRESHOLD2):
     temp = -1
     while temp != len(colors):
         temp = len(colors)
-        colors = merge_colors(colors)
+        colors = merge_colors(colors, threshold)
     return colors
 
 
@@ -97,6 +98,7 @@ def db_scan(image):
 
 def color_scan(clusters, image):
     c = 0
+    full_colors = []
     for cluster in clusters:
         colors = []
         for x, y in cluster:
@@ -117,9 +119,14 @@ def color_scan(clusters, image):
         for i in range(len(colors)):
             if points_with_color(colors[i], cluster, image) < MIN_POINTS_COLOR:
                 colors.pop(i)
-        print(colors)
+
+        for color in colors:
+            full_colors.append(color)
+
         c += max(len(colors) - 1, 1)
-    return c
+    full_colors = clear_colors(full_colors, SAME_COLOR_THRESHOLD3)
+
+    return c, len(full_colors) - 1
 
 def color_dist(color1, color2):
     return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (int(color1[2]) - int(color2[2])) ** 2)
@@ -153,7 +160,7 @@ def draw_bb(img, contours):
 
 
 if __name__ == "__main__":
-    img = cv2.imread("6.jpg")
+    img = cv2.imread("44.jpg")
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
@@ -161,6 +168,11 @@ if __name__ == "__main__":
 
     dim = (width, height)
     img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    #img_hsv[:, :, 1] = np.clip(img_hsv[:, :, 1] * 1.5, 0, 255)
+    #img_hsv[:, :, 2] = np.clip(img_hsv[:, :, 2] + 9, 0, 255)
+    #img = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
 
 
     img = cv2.medianBlur(img, 11)
@@ -175,7 +187,6 @@ if __name__ == "__main__":
 
     #img_bb, rectangles = draw_bb(img, contours)
     #display_images([img_bb], ["Bounding Boxes"], (600, 800))
-
 
     result = np.zeros_like(img)
     for contour in contours:
