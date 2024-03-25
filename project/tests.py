@@ -9,7 +9,7 @@ import cv2
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 TEST_COUNT_BLOCKS = True
-TEST_COUNT_COLORS = False
+TEST_COUNT_COLORS = True
 NUM_TESTS = 50  # max is 50
 TEST_TARGET = main
 
@@ -161,6 +161,6 @@ def grid(images_folder, values_folder):
 
 
 if __name__ == '__main__':
-    grid("samples-task1/samples", "samples-task1/answers")
-    # main.DISPLAY = False
-    # run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    # grid("samples-task1/samples", "samples-task1/answers")
+    main.DISPLAY = False
+    run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)

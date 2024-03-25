@@ -11,6 +11,35 @@ DISPLAY = True
 TARGET_WIDTH = 944
 TARGET_HEIGHT = 1133
 
+def remove_background_canny_v2(image_path):
+    image = cv2.imread(image_path)
+
+    # resize image
+    ratio = image.shape[1] / image.shape[0]
+    height = 700
+    width = int(height * ratio)
+
+    dim = (width, height)
+    image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+    image = cv2.medianBlur(image, 11)
+    image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 100, 150)
+
+    edges = cv2.dilate(edges, None, iterations=10)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    result = np.zeros_like(image)
+    for contour in contours:
+        if cv2.contourArea(contour) > 0:
+            cv2.drawContours(result, [contour], 0, (255, 255, 255), cv2.FILLED)
+
+    result = cv2.bitwise_and(image, result)
+
+    return result
+
 
 def remove_background_canny(image_path):
     image = cv2.imread(image_path)
@@ -253,7 +282,13 @@ def detect_pieces_v2(filename):
 
 def detect_pieces_v3(filename):
     without_background = remove_background_canny(filename)
-    return gpe.db_scan(without_background)
+    return len(gpe.db_scan(without_background))
+
+def detect_pieces_v4(filename):
+    without_background = remove_background_canny(filename)
+    clusters = gpe.db_scan(without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background)
+    return pieces
 
 
 def count_colors_v1(filename):
@@ -265,12 +300,18 @@ def count_colors_v2(filename):
     without_background = remove_background(filename)
     return color_detection(without_background)
 
+def count_colors_v3(filename):
+    without_background = remove_background_canny_v2(filename)
+    clusters = gpe.db_scan(without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background)
+    return colors
+
 
 def main(filename):
     # print(detect_pieces_v1(filename))
     # print(detect_pieces_v2(filename))
     start = time.time()
-    print(detect_pieces_v3(filename))
+    print(detect_pieces_v4(filename))
     print("Time taken: ", time.time() - start, "seconds")
     # print(count_colors_v1(filename))
     # print(count_colors_v1(filename))
