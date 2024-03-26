@@ -49,10 +49,9 @@ def find_edges(
     enhanced_img,
     canny_threshold1=CANNY_THRESHOLD1,
     canny_threshold2=CANNY_THRESHOLD2,
-    dilate_iterations=DILATE_ITERATIONS,
 ):
     edges = cv2.Canny(enhanced_img, canny_threshold1, canny_threshold2)
-    edges = cv2.dilate(edges, None, iterations=dilate_iterations)
+    edges = cv2.dilate(edges, None, iterations=DILATE_ITERATIONS)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contours_img = cv2.drawContours(
@@ -70,14 +69,14 @@ def draw_bbs(img, bbs):
     return img_clone
 
 
-def get_bb(contours, bb_min_height=BB_MIN_HEIGHT, bb_min_width=BB_MIN_WIDTH):
+def get_bb(contours):
     bb = [cv2.boundingRect(contour) for contour in contours]
     clean_bb = []
     for i in range(len(bb)):
         # Check if the bounding box is not too small
         (x, y, w, h) = bb[i]
 
-        if w < bb_min_width or h < bb_min_height:
+        if w < BB_MIN_WIDTH or h < BB_MIN_HEIGHT:
             continue
 
         # Check if the bounding box is not contained in another bounding box
@@ -98,8 +97,6 @@ def get_bb(contours, bb_min_height=BB_MIN_HEIGHT, bb_min_width=BB_MIN_WIDTH):
 def daniel(
     path_to_img,
     display=False,
-    bb_min_height=BB_MIN_HEIGHT,
-    bb_min_width=BB_MIN_WIDTH,
     clip_limit=CLIP_LIMIT_CLAHE,
     tile_grid_size=TILE_GRID_SIZE_CLAHE,
     bilateral_filter_d=BILATERAL_FILTER_D,
@@ -107,7 +104,6 @@ def daniel(
     bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
     canny_threshold1=CANNY_THRESHOLD1,
     canny_threshold2=CANNY_THRESHOLD2,
-    dilate_iterations=DILATE_ITERATIONS,
 ):
     img = cv2.imread(path_to_img)
     enhanced_img = improve_img(
@@ -119,9 +115,9 @@ def daniel(
         bilateral_filter_sigma_space,
     )
     edges, contours, contours_img = find_edges(
-        enhanced_img, canny_threshold1, canny_threshold2, dilate_iterations
+        enhanced_img, canny_threshold1, canny_threshold2
     )
-    bb = get_bb(contours, bb_min_height, bb_min_width)
+    bb = get_bb(contours)
     img_bb = draw_bbs(img, bb)
 
     if display:
