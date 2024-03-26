@@ -128,9 +128,9 @@ def store_results(data):
 def grid(images_folder, values_folder):
     test_values = get_expected_values(images_folder, values_folder)
     parameters = dict()
-    parameters['median_blur'] = [3, 7, 15, 31, 51]
-    parameters['gaussian_blur'] = [3, 5, 7, 9, 11, 15, 21]
-    parameters['sigma'] = [0, 2, 2.5, 3]
+    # parameters['median_blur'] = [3, 7, 15, 31, 51]
+    # parameters['gaussian_blur'] = [3, 5, 7, 9, 11, 15, 21]
+    # parameters['sigma'] = [0, 2, 2.5, 3]
     parameters['canny_min'] = [50, 75, 100, 125, 150, 175, 200]
     parameters['canny_max'] = [100, 125, 150, 175, 200, 225, 250]
     parameters['dilation_it'] = [5, 6, 10, 13]
