@@ -3,6 +3,8 @@ import sys
 import numpy as np
 from utils import display_images
 
+BB_MIN_HEIGHT = 200
+BB_MIN_WIDTH = 200
 
 def improve_img(img):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -11,7 +13,7 @@ def improve_img(img):
     enhanced_img = clahe.apply(gray_img)
 
     enhanced_img = cv2.medianBlur(enhanced_img, 15)
-    enhanced_img = cv2.GaussianBlur(enhanced_img, (5, 5), 0)
+    enhanced_img = cv2.GaussianBlur(enhanced_img, (7, 7), 0)
 
     # kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
     # enhanced_img = cv2.filter2D(enhanced_img, -1, kernel)
@@ -50,7 +52,8 @@ def get_bb(contours):
     for i in range(len(bb)):
         # Check if the bounding box is not too small
         (x, y, w, h) = bb[i]
-        if w < 100 or h < 100:
+        
+        if w < BB_MIN_WIDTH or h < BB_MIN_HEIGHT:
             continue
 
         # Check if the bounding box is not contained in another bounding box
