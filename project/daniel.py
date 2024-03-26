@@ -31,8 +31,6 @@ def improve_img(
     clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
     enhanced_img = clahe.apply(gray_img)
 
-    enhanced_img = gray_img
-
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
     sharp_img = cv2.filter2D(enhanced_img, -1, kernel)
     blur_img = cv2.bilateralFilter(
