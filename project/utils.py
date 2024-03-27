@@ -1,4 +1,6 @@
 import cv2
+import os
+import json
 
 
 def display_images(images, window_names, dimensions=None):
@@ -24,3 +26,24 @@ def resize_image(image, dimensions):
         image = cv2.resize(image, (new_width, new_height))
 
     return image
+
+
+def create_answers_json(path_answers, path_images, path_out_json):
+    photos = os.listdir(path_images)
+
+    answers = {}
+
+    for photo in photos:
+        photo_name = photo.split(".")[0]
+        with open(f"{path_answers}/{photo_name}.txt", "r") as f:
+            num_blocks, num_colors = map(int, f.readlines())
+            answers[photo_name] = {
+                "path": f"{path_images}/{photo}",
+                "pieces": num_blocks,
+                "colors": num_colors,
+            }
+
+    with open(path_out_json, "w") as f:
+        json.dump(answers, f)
+
+    print("JSON file created!")
