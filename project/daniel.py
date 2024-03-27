@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import sys
 import numpy as np
@@ -19,12 +21,12 @@ DILATE_ITERATIONS = 10
 
 
 def improve_img(
-    img,
-    clip_limit=CLIP_LIMIT_CLAHE,
-    tile_grid_size=TILE_GRID_SIZE_CLAHE,
-    bilateral_filter_d=BILATERAL_FILTER_D,
-    bilateral_filter_sigma_color=BILATERAL_FILTER_SIGMA_COLOR,
-    bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
+        img,
+        clip_limit=CLIP_LIMIT_CLAHE,
+        tile_grid_size=TILE_GRID_SIZE_CLAHE,
+        bilateral_filter_d=BILATERAL_FILTER_D,
+        bilateral_filter_sigma_color=BILATERAL_FILTER_SIGMA_COLOR,
+        bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
 ):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -44,9 +46,9 @@ def improve_img(
 
 
 def find_edges(
-    enhanced_img,
-    canny_threshold1=CANNY_THRESHOLD1,
-    canny_threshold2=CANNY_THRESHOLD2,
+        enhanced_img,
+        canny_threshold1=CANNY_THRESHOLD1,
+        canny_threshold2=CANNY_THRESHOLD2,
 ):
     edges = cv2.Canny(enhanced_img, canny_threshold1, canny_threshold2)
     edges = cv2.dilate(edges, None, iterations=DILATE_ITERATIONS)
@@ -93,17 +95,16 @@ def get_bb(contours):
 
 
 def daniel(
-    path_to_img,
-    display=False,
-    clip_limit=CLIP_LIMIT_CLAHE,
-    tile_grid_size=TILE_GRID_SIZE_CLAHE,
-    bilateral_filter_d=BILATERAL_FILTER_D,
-    bilateral_filter_sigma_color=BILATERAL_FILTER_SIGMA_COLOR,
-    bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
-    canny_threshold1=CANNY_THRESHOLD1,
-    canny_threshold2=CANNY_THRESHOLD2,
+        img,
+        display=False,
+        clip_limit=CLIP_LIMIT_CLAHE,
+        tile_grid_size=TILE_GRID_SIZE_CLAHE,
+        bilateral_filter_d=BILATERAL_FILTER_D,
+        bilateral_filter_sigma_color=BILATERAL_FILTER_SIGMA_COLOR,
+        bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
+        canny_threshold1=CANNY_THRESHOLD1,
+        canny_threshold2=CANNY_THRESHOLD2,
 ):
-    img = cv2.imread(path_to_img)
     enhanced_img = improve_img(
         img,
         clip_limit,
@@ -136,5 +137,5 @@ def daniel(
 
 if __name__ == "__main__":
     path_to_img = sys.argv[1]
-    num_pieces = daniel(path_to_img, display=True)
+    num_pieces = daniel(cv2.imread(path_to_img), display=False)
     print(f"Number of pieces: {num_pieces}")

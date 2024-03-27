@@ -1,10 +1,13 @@
+import datetime
 import itertools
 import os
 import time
 
+import joblib
 import pandas as pd
 import main
 import GridExperiment
+import daniel
 import cv2
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
@@ -105,32 +108,52 @@ def prepare_image(image_path):
     return cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
 
-def process_combination(image_path, num_blocks, param_combinations):
+def process_combination_gpe(image_path, num_blocks):
     results = []
     image = prepare_image(image_path)
-    for params in param_combinations:
+    for params in get_parameters_gpe_blocks():
         try:
             result = GridExperiment.evaluate_function(image.copy(), params)
             results.append({**params, 'image_path': image_path, 'error': calculate_error(result, num_blocks)})
-        except Exception:
-            pass
+        except Exception as e:
+            print('image: ' + image_path)
+            print('params: ' + str(params))
+            print('Error: ' + str(e))
     return results
 
 
-def store_results(data):
+def process_combination_dani(image_path, num_blocks):
+    results = []
+    img = cv2.imread(image_path)
+    for params in get_parameters_dani_blocks():
+        try:
+            result = daniel.daniel(img.copy(), False, params['clip_limit'], params['tile_grid_size'],
+                                   params['bilateral_filter_d'], params['bilateral_filter_sigma_color'],
+                                   params['bilateral_filter_sigma_space'], params['canny_threshold1'],
+                                   params['canny_threshold2'])
+            results.append({**params, 'image_path': image_path, 'error': calculate_error(result, num_blocks)})
+        except Exception as e:
+            print('image: ' + image_path)
+            print('params: ' + str(params))
+            print('Error: ' + str(e))
+    return results
+
+
+def store_results(data, grid_name, error_name):
     df = pd.DataFrame(data)
-    df.to_csv('grid.csv', index=False)
-    errors = df.groupby(['median_blur', 'gaussian_blur', 'sigma', 'canny_min', 'canny_max', 'dilation_it'])[
-        'error'].mean().reset_index()
-    errors.to_csv('errors.csv', index=False)
+    df.to_csv(grid_name, index=False)
+    cols = list(data[0].keys())
+    cols.remove('image_path')
+    cols.remove('error')
+    errors = df.groupby(cols)['error'].mean().reset_index()
+    errors.to_csv(error_name, index=False)
 
 
-def grid(images_folder, values_folder):
-    test_values = get_expected_values(images_folder, values_folder)
+def get_parameters_gpe_blocks():
     parameters = dict()
-    # parameters['median_blur'] = [3, 7, 15, 31, 51]
-    # parameters['gaussian_blur'] = [3, 5, 7, 9, 11, 15, 21]
-    # parameters['sigma'] = [0, 2, 2.5, 3]
+    parameters['median_blur'] = [3, 7, 15, 31, 51]
+    parameters['gaussian_blur'] = [3, 5, 7, 9, 11, 15, 21]
+    parameters['sigma'] = [0, 2, 2.5, 3]
     parameters['canny_min'] = [50, 75, 100, 125, 150, 175, 200]
     parameters['canny_max'] = [100, 125, 150, 175, 200, 225, 250]
     parameters['dilation_it'] = [5, 6, 10, 13]
@@ -140,27 +163,54 @@ def grid(images_folder, values_folder):
         param_dict = {key: value for key, value in zip(parameters.keys(), combo)}
         if param_dict['canny_min'] < param_dict['canny_max']:
             param_combinations.append(param_dict)
+    return param_combinations
+
+
+def get_parameters_dani_blocks():
+    parameters ={
+    'clip_limit': [2.0, 3.5],
+    'tile_grid_size': [ (75, 75), (100, 100), (150, 150)],
+    'bilateral_filter_d': [7, 11, 15, 21],
+    'bilateral_filter_sigma_color': [50, 70, 90, 110],
+    'bilateral_filter_sigma_space': [50, 70, 90, 110],
+    'canny_threshold1': [40, 50, 60],
+    'canny_threshold2': [60, 70, 80, 110, 140],
+}
+
+    param_combinations = []
+    for combo in list(itertools.product(*parameters.values())):
+        param_dict = {key: value for key, value in zip(parameters.keys(), combo)}
+        if param_dict['canny_threshold1'] < param_dict['canny_threshold2']:
+            param_combinations.append(param_dict)
+    return param_combinations
+
+
+def grid(images_folder, values_folder, func, joblib_name, grid_name, error_name):
+    test_values = get_expected_values(images_folder, values_folder)
 
     results = []
-
     with ProcessPoolExecutor() as executor:
         futures = []
         done = 0
         for image_path, (num_blocks, num_colors) in test_values:
-            future = executor.submit(process_combination, image_path, num_blocks, param_combinations)
+            future = executor.submit(func, image_path, num_blocks)
             futures.append(future)
         for future in as_completed(futures):
             done += 1
-            print(f'{done}/{len(futures)}')
+            print(f'{done}/{len(futures)} : {datetime.datetime.now()}')
             results.extend(future.result())
-            store_results(results)
+            store_results(results, grid_name, error_name)
     print("out")
     executor.shutdown()
 
-    store_results(results)
+    joblib.dump(results, joblib_name)
+
+    store_results(results, grid_name, error_name)
 
 
 if __name__ == '__main__':
-    # grid("samples-task1/samples", "samples-task1/answers")
-    main.DISPLAY = False
-    run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    grid("samples-task1/samples", "samples-task1/answers", process_combination_dani, 'list_dani.joblib',
+         'grid_dani.csv', 'error_dani.csv')
+    # grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
+    # main.DISPLAY = False
+    # run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
