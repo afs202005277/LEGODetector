@@ -96,6 +96,7 @@ def get_bb(contours):
 
 def daniel(
     img,
+    id_execution=-1,
     display=False,
     clip_limit=CLIP_LIMIT_CLAHE,
     tile_grid_size=TILE_GRID_SIZE_CLAHE,
@@ -105,6 +106,7 @@ def daniel(
     canny_threshold1=CANNY_THRESHOLD1,
     canny_threshold2=CANNY_THRESHOLD2,
 ):
+    
 
     enhanced_img = improve_img(
         img,
@@ -133,7 +135,7 @@ def daniel(
             (600, 800),
         )
 
-    return len(bb), 0
+    return len(bb), 0, id_execution
 
 
 if __name__ == "__main__":
