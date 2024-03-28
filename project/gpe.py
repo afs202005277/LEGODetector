@@ -2,9 +2,10 @@ import cv2
 import numpy as np
 from utils import display_images
 import math
+import os
 
 SAME_COLOR_THRESHOLD = 100
-SAME_COLOR_THRESHOLD2 = 70
+SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 50
 
@@ -76,7 +77,7 @@ def clear_clusters(image, clusters, ratio):
 
 def db_scan(image):
     clusters = []
-    ratio = image.shape[0] // 150
+    ratio = image.shape[0] // 100
     # For every pixel in the image
     for i in range(0, image.shape[0], ratio):
         for j in range(0, image.shape[1], ratio):
@@ -96,7 +97,7 @@ def db_scan(image):
     return clusters
 
 
-def color_scan(clusters, image):
+def color_scan(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR):
     c = 0
     full_colors = []
     for cluster in clusters:
@@ -106,7 +107,7 @@ def color_scan(clusters, image):
             found = False
             for i in range(len(colors)):
                     
-                if color_dist(color, colors[i]) < SAME_COLOR_THRESHOLD:
+                if color_dist(color, colors[i]) < threshold1:
                     found = True
                     colors[i][0] = (int(colors[i][0]) + int(color[0])) // 2
                     colors[i][1] = (int(colors[i][1]) + int(color[1])) // 2
@@ -114,13 +115,13 @@ def color_scan(clusters, image):
                     break
             if not found:
                 colors.append(color)
-        colors = clear_colors(colors)
+        colors = clear_colors(colors, threshold2)
 
         temp = -1
         while temp != len(colors):
             temp = len(colors)
             for i in range(len(colors)):
-                if points_with_color(colors[i], cluster, image) < MIN_POINTS_COLOR:
+                if points_with_color(colors[i], cluster, image, threshold2) < min_points_color:
                     colors.pop(i)
                     break
 
@@ -128,18 +129,18 @@ def color_scan(clusters, image):
             full_colors.append(color)
 
         c += max(len(colors) - 1, 1)
-    full_colors = clear_colors(full_colors, SAME_COLOR_THRESHOLD3)
+    full_colors = clear_colors(full_colors, threshold3)
 
-    return c, len(full_colors) - 1
+    return c, max(len(full_colors) - 1, 1)
 
 def color_dist(color1, color2):
     return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (int(color1[2]) - int(color2[2])) ** 2)
             
 
-def points_with_color(color, cluster, image):
+def points_with_color(color, cluster, image, threshold=SAME_COLOR_THRESHOLD2):
     c = 0
     for point in cluster:
-        if color_dist(color, image[point[0]][point[1]]) < SAME_COLOR_THRESHOLD2:
+        if color_dist(color, image[point[0]][point[1]]) < threshold:
             c += 1
     return c
         
@@ -164,7 +165,16 @@ def draw_bb(img, contours):
 
 
 if __name__ == "__main__":
-    img = cv2.imread("44.jpg")
+    #get a list of every image in the samples folder
+
+    '''samples_folder = "./samples-task1/samples"
+    images = []
+    for filename in os.listdir(samples_folder):
+            images.append(os.path.join(samples_folder, filename))'''
+
+
+
+    img = cv2.imread('2.jpg')
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
@@ -174,16 +184,16 @@ if __name__ == "__main__":
     img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
 
     img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    #img_hsv[:, :, 1] = np.clip(img_hsv[:, :, 1] * 1.5, 0, 255)
-    #img_hsv[:, :, 2] = np.clip(img_hsv[:, :, 2] + 9, 0, 255)
-    #img = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
+    img_hsv[:, :, 1] = np.clip(img_hsv[:, :, 1] + 12, 0, 255)
+    img_hsv[:, :, 2] = np.clip(img_hsv[:, :, 2] + 3, 0, 255)
+    img = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
 
 
     img = cv2.medianBlur(img, 11)
     img = cv2.GaussianBlur(img, (3, 3), sigmaX=0)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 100, 150)
+    edges = cv2.Canny(gray, 50, 125)
 
     edges = cv2.dilate(edges, None, iterations=10)
 
@@ -206,7 +216,7 @@ if __name__ == "__main__":
     n = color_scan(clusters, result)
     print(n)
     
-   #grab cut for each rectangle´
+#grab cut for each rectangle´
     
     '''result2 = np.zeros_like(img)
     for rectangle in rectangles:
