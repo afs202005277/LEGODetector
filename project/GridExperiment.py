@@ -32,5 +32,6 @@ def remove_background_canny(image, params):
 def evaluate_function(image, params):
     without_background = remove_background_canny(image, params)
     clusters = gpe.db_scan(without_background)
-    pieces, colors = gpe.color_scan(clusters, without_background, params['threshold1'], params['threshold2'], params['threshold3'], params['minpoints'])
+    bg_color = gpe.get_bg_color(image, without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background, bg_color, params['threshold1'], params['threshold2'], params['threshold3'], params['minpoints'])
     return colors

@@ -3,12 +3,23 @@ import numpy as np
 from utils import display_images
 import math
 import os
+import random
 
-SAME_COLOR_THRESHOLD = 100
+SAME_COLOR_THRESHOLD = 110
 SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 50
 
+
+def get_bg_color(initial_image, image_no_bg):
+    bg_color = None
+    while True:
+        height = random.randint(0, image_no_bg.shape[0] - 1)
+        width = random.randint(0, image_no_bg.shape[1] - 1)
+        if is_black(image_no_bg[height][width]):
+            bg_color = initial_image[height][width]
+            break
+    return bg_color
 
 def is_black(pixel):
     return pixel[0] == 0 and pixel[1] == 0 and pixel[2] == 0
@@ -97,7 +108,7 @@ def db_scan(image):
     return clusters
 
 
-def color_scan(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR):
+def color_scan(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR):
     c = 0
     full_colors = []
     for cluster in clusters:
@@ -125,17 +136,31 @@ def color_scan(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME
                     colors.pop(i)
                     break
 
-        for color in colors:
+
+        colors_no_bg = remove_bg(colors, bg_color)
+        
+        for color in colors_no_bg:
             full_colors.append(color)
 
-        c += max(len(colors) - 1, 1)
-    full_colors = clear_colors(full_colors, threshold3)
+        c += max(len(colors_no_bg), 1)
 
-    return c, max(len(full_colors) - 1, 1)
+    return c, max(len(full_colors), 1)
 
 def color_dist(color1, color2):
     return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (int(color1[2]) - int(color2[2])) ** 2)
-            
+
+def remove_bg(colors, bg_color):
+    min_dist = 1000000
+    min_val = None
+    if len(colors) < 2:
+        return colors
+    for i, color in enumerate(colors):
+        if color_dist(color, bg_color) < min_dist:
+            min_dist = color_dist(color, bg_color)
+            min_val = i
+    colors.pop(min_val)
+    return colors
+         
 
 def points_with_color(color, cluster, image, threshold=SAME_COLOR_THRESHOLD2):
     c = 0
@@ -174,7 +199,7 @@ if __name__ == "__main__":
 
 
 
-    img = cv2.imread('2.jpg')
+    img = cv2.imread('1.jpg')
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
@@ -210,10 +235,11 @@ if __name__ == "__main__":
     result = cv2.bitwise_and(img, result)
 
     # result = cv2.GaussianBlur(result, (41, 41), sigmaX=0)
+    bg_color = get_bg_color(img, result)
 
     # Detect how many pieces are in the image
     clusters = db_scan(result)
-    n = color_scan(clusters, result)
+    n = color_scan(clusters, result, bg_color)
     print(n)
     
 #grab cut for each rectangle´
