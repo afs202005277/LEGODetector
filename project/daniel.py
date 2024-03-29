@@ -8,49 +8,43 @@ from utils import display_images, resize_image
 BB_MIN_HEIGHT = 200
 BB_MIN_WIDTH = 200
 
-CLIP_LIMIT_CLAHE = 2.0
-TILE_GRID_SIZE_CLAHE = (100, 100)
+CLIP_LIMIT_CLAHE = 1.0
+TILE_GRID_SIZE_CLAHE = (8, 8)
 
-BILATERAL_FILTER_D = 11
+BILATERAL_FILTER_D = 5
 BILATERAL_FILTER_SIGMA_COLOR = 75
 BILATERAL_FILTER_SIGMA_SPACE = 75
 
-CANNY_THRESHOLD1 = 50
-CANNY_THRESHOLD2 = 70
+CANNY_THRESHOLD1 = 60
+CANNY_THRESHOLD2 = 100
 DILATE_ITERATIONS = 10
 
 
-def improve_img(
-    img,
-    clip_limit=CLIP_LIMIT_CLAHE,
-    tile_grid_size=TILE_GRID_SIZE_CLAHE,
-    bilateral_filter_d=BILATERAL_FILTER_D,
-    bilateral_filter_sigma_color=BILATERAL_FILTER_SIGMA_COLOR,
-    bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
-):
+def improve_img(img):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+    clahe = cv2.createCLAHE(
+        clipLimit=CLIP_LIMIT_CLAHE, tileGridSize=TILE_GRID_SIZE_CLAHE
+    )
     enhanced_img = clahe.apply(gray_img)
+
+    enhanced_img = gray_img
 
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
     sharp_img = cv2.filter2D(enhanced_img, -1, kernel)
+
     blur_img = cv2.bilateralFilter(
         sharp_img,
-        bilateral_filter_d,
-        bilateral_filter_sigma_color,
-        bilateral_filter_sigma_space,
+        BILATERAL_FILTER_D,
+        BILATERAL_FILTER_SIGMA_COLOR,
+        BILATERAL_FILTER_SIGMA_SPACE,
     )
 
     return blur_img
 
 
-def find_edges(
-    enhanced_img,
-    canny_threshold1=CANNY_THRESHOLD1,
-    canny_threshold2=CANNY_THRESHOLD2,
-):
-    edges = cv2.Canny(enhanced_img, canny_threshold1, canny_threshold2)
+def find_edges(enhanced_img):
+    edges = cv2.Canny(enhanced_img, CANNY_THRESHOLD1, CANNY_THRESHOLD2)
     edges = cv2.dilate(edges, None, iterations=DILATE_ITERATIONS)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -94,48 +88,36 @@ def get_bb(contours):
     return clean_bb
 
 
-def daniel(
-    img,
-    id_execution=-1,
-    display=False,
-    clip_limit=CLIP_LIMIT_CLAHE,
-    tile_grid_size=TILE_GRID_SIZE_CLAHE,
-    bilateral_filter_d=BILATERAL_FILTER_D,
-    bilateral_filter_sigma_color=BILATERAL_FILTER_SIGMA_COLOR,
-    bilateral_filter_sigma_space=BILATERAL_FILTER_SIGMA_SPACE,
-    canny_threshold1=CANNY_THRESHOLD1,
-    canny_threshold2=CANNY_THRESHOLD2,
-):
-    
+def daniel(img, display=True):
 
-    enhanced_img = improve_img(
-        img,
-        clip_limit,
-        tile_grid_size,
-        bilateral_filter_d,
-        bilateral_filter_sigma_color,
-        bilateral_filter_sigma_space,
-    )
-    edges, contours, contours_img = find_edges(
-        enhanced_img, canny_threshold1, canny_threshold2
-    )
+    enhanced_img = improve_img(img)
+    edges, contours, contours_img = find_edges(enhanced_img)
     bb = get_bb(contours)
     img_bb = draw_bbs(img, bb)
 
     if display:
+        # display_images(
+        #     [img, enhanced_img, edges, contours_img, img_bb],
+        #     [
+        #         "Original Image",
+        #         "Enhanced Image",
+        #         "Edges",
+        #         "Contours Image",
+        #         "Bounding Boxes",
+        #     ],
+        #     (600, 800),
+        # )
         display_images(
-            [img, enhanced_img, edges, contours_img, img_bb],
+            [enhanced_img, edges],
             [
-                "Original Image",
                 "Enhanced Image",
                 "Edges",
-                "Contours Image",
-                "Bounding Boxes",
             ],
             (600, 800),
         )
 
-    return len(bb), 0, id_execution
+    # return len(bb), 0, id_execution
+    return len(bb), 0
 
 
 if __name__ == "__main__":

@@ -208,24 +208,14 @@ def get_parameters_gpe_blocks():
 
 
 def get_parameters_dani_blocks():
-    # parameters = {
-    #     "clip_limit": [2.0, 3.5],
-    #     "tile_grid_size": [(75, 75), (100, 100), (150, 150)],
-    #     "bilateral_filter_d": [7, 11, 15],
-    #     "bilateral_filter_sigma_color": [50, 70, 90, 110],
-    #     "bilateral_filter_sigma_space": [50, 70, 90, 110],
-    #     "canny_threshold1": [40, 50],
-    #     "canny_threshold2": [60, 70, 80, 110, 140],
-    # }
-
     parameters = {
-        "clip_limit": [2.0],
-        "tile_grid_size": [(100, 100)],
+        "clip_limit": [2.0, 2.5, 3.0],
+        "tile_grid_size": [(75, 75), (100, 100), (150, 150)],
         "bilateral_filter_d": [7, 11, 15],
-        "bilateral_filter_sigma_color": [50, 70, 90],
-        "bilateral_filter_sigma_space": [50, 70, 90],
+        "bilateral_filter_sigma_color": [50, 70, 90, 110],
+        "bilateral_filter_sigma_space": [50, 70, 90, 110],
         "canny_threshold1": [40, 50],
-        "canny_threshold2": [60, 70, 80, 110],
+        "canny_threshold2": [60, 70, 80, 110, 140],
     }
 
     param_combinations = []
