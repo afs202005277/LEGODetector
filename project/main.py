@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from utils import display_images
 import gpe
 
-DISPLAY = True
+DISPLAY = False
 TARGET_WIDTH = 944
 TARGET_HEIGHT = 1133
 
@@ -16,17 +16,22 @@ def remove_background_canny_v2(image_path):
 
     # resize image
     ratio = image.shape[1] / image.shape[0]
-    height = 700
+    height = 800
     width = int(height * ratio)
 
     dim = (width, height)
     image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
 
-    image = cv2.medianBlur(image, 11)
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] + 12, 0, 255)
+    image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2] + 3, 0, 255)
+    image = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR)
+
+    image = cv2.medianBlur(image, 15)
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 100, 150)
+    edges = cv2.Canny(gray, 50, 125)
 
     edges = cv2.dilate(edges, None, iterations=10)
 
@@ -38,7 +43,7 @@ def remove_background_canny_v2(image_path):
 
     result = cv2.bitwise_and(image, result)
 
-    return result
+    return image, result
 
 
 def remove_background_canny(image_path):
@@ -46,12 +51,18 @@ def remove_background_canny(image_path):
 
     # resize image
     ratio = image.shape[1] / image.shape[0]
-    height = 800
-    width = int(height * ratio)
+    height, width = 0, 0
+    if ratio > 1:
+        width = 800
+        height = int(width / ratio)
+    else:
+        height = 800
+        width = int(height * ratio)
+
+    
 
     dim = (width, height)
     image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
-
     image = cv2.medianBlur(image, 15)
     image = cv2.GaussianBlur(image, (5, 5), sigmaX=0)
 
@@ -285,9 +296,10 @@ def detect_pieces_v3(filename):
     return len(gpe.db_scan(without_background))
 
 def detect_pieces_v4(filename):
-    without_background = remove_background_canny(filename)
+    image, without_background = remove_background_canny_v2(filename)
     clusters = gpe.db_scan(without_background)
-    pieces, colors = gpe.color_scan(clusters, without_background)
+    bg_color = gpe.get_bg_color(image, without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
     return pieces
 
 
@@ -301,9 +313,10 @@ def count_colors_v2(filename):
     return color_detection(without_background)
 
 def count_colors_v3(filename):
-    without_background = remove_background_canny_v2(filename)
+    image, without_background = remove_background_canny_v2(filename)
     clusters = gpe.db_scan(without_background)
-    pieces, colors = gpe.color_scan(clusters, without_background)
+    bg_color = gpe.get_bg_color(image, without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
     return colors
 
 

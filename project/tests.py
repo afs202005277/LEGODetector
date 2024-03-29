@@ -192,18 +192,15 @@ def store_results(data, grid_name, error_name):
 
 def get_parameters_gpe_blocks():
     parameters = dict()
-    parameters["median_blur"] = [3, 7, 15, 31, 51]
-    parameters["gaussian_blur"] = [3, 5, 7, 9, 11, 15, 21]
-    parameters["sigma"] = [0, 2, 2.5, 3]
-    parameters["canny_min"] = [50, 75, 100, 125, 150, 175, 200]
-    parameters["canny_max"] = [100, 125, 150, 175, 200, 225, 250]
-    parameters["dilation_it"] = [5, 6, 10, 13]
+    parameters['threshold1'] = [20, 40, 50, 60, 70, 80, 90, 100, 110, 120]
+    parameters['threshold2'] = [20, 40, 50, 60, 70, 80, 90, 100, 110, 120]
+    parameters['threshold3'] = [20, 40, 50, 60, 70, 80, 90, 100, 110, 120]
+    parameters['minpoints'] = [20, 40, 50, 60, 80, 100, 110]
 
     param_combinations = []
     for combo in list(itertools.product(*parameters.values())):
         param_dict = {key: value for key, value in zip(parameters.keys(), combo)}
-        if param_dict["canny_min"] < param_dict["canny_max"]:
-            param_combinations.append(param_dict)
+        param_combinations.append(param_dict)
     return param_combinations
 
 
@@ -234,7 +231,7 @@ def grid(images_folder, values_folder, func, joblib_name, grid_name, error_name)
         futures = []
         done = 0
         for image_path, (num_blocks, num_colors) in test_values:
-            future = executor.submit(func, image_path, num_blocks)
+            future = executor.submit(func, image_path, num_colors)
             futures.append(future)
         for future in as_completed(futures):
             done += 1
@@ -250,14 +247,14 @@ def grid(images_folder, values_folder, func, joblib_name, grid_name, error_name)
 
 
 if __name__ == "__main__":
-    grid(
+    '''grid(
         "samples-task1/samples",
         "samples-task1/answers",
         process_combination_dani,
         "list_dani.joblib",
         "grid_dani.csv",
         "error_dani.csv",
-    )
-    # grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
+    )'''
+    grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
     # main.DISPLAY = False
-    # run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    #run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
