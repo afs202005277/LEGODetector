@@ -10,6 +10,21 @@ SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 50
 
+colors_hue = {
+        "red": 4,
+        "orange": 21,
+        "yellow": 35,
+        "lime": 45,
+        "green": 70,
+        "turquoise": 87,
+        "cyan": 100,
+        "coral": 110,
+        "blue": 125,
+        "purple": 135,
+        "magenta": 155,
+        "pink": 165,
+    }
+
 
 def get_bg_color(initial_image, image_no_bg):
     bg_color = None
@@ -88,7 +103,7 @@ def clear_clusters(image, clusters, ratio):
 
 def db_scan(image):
     clusters = []
-    ratio = image.shape[0] // 100
+    ratio = image.shape[0] // 150
     # For every pixel in the image
     for i in range(0, image.shape[0], ratio):
         for j in range(0, image.shape[1], ratio):
@@ -110,6 +125,76 @@ def db_scan(image):
 
 def color_scan(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR):
     c = 0
+    full_colors = []
+    one_color = False
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    for cluster in clusters:
+        colors = []
+        colors_dict = {
+            "red": [0, 0],
+            "orange": [0, 0],
+            "yellow": [0, 0],
+            "lime": [0, 0],
+            "green": [0, 0],
+            "turquoise": [0, 0],
+            "cyan": [0, 0],
+            "coral": [0, 0],
+            "blue": [0, 0],
+            "purple": [0, 0],
+            "magenta": [0, 0],
+            "pink": [0, 0],
+            "white": [0, 0]
+        }
+        for x, y in cluster:
+            h, s, v = image_hsv[x][y]
+            for color in colors_hue:
+                if s <= 60:
+                    if v >= 60:
+                        colors_dict["white"][0] += 1
+                    else:
+                        colors_dict["white"][1] += 1
+                    break
+                if h <= colors_hue[color]:
+                    if v >= 60:
+                        colors_dict[color][0] += 1
+                    else:
+                        colors_dict[color][1] += 1
+                    break
+                if color == "pink":
+                    if v >= 60:
+                        colors_dict["red"][0] += 1
+                    else:
+                        colors_dict["red"][1] += 1
+                    break
+        for color in colors_dict:
+            bright, dark = colors_dict[color]
+
+            if bright >= MIN_POINTS_COLOR:
+                colors.append(color)
+
+            if dark >= MIN_POINTS_COLOR:
+                if color == "white":
+                    colors.append("black")
+                else:
+                    colors.append(f"dark {color}")
+
+        c += max(1, len(colors) - 1)
+
+        print(colors)
+
+        if len(colors) == 1:
+            one_color = True
+
+        for color in colors:
+            if color not in full_colors:
+                full_colors.append(color)
+
+    cs = max(len(full_colors), 1) if one_color else max(len(full_colors) - 1, 1)
+
+
+    return c, cs
+        
+    '''c = 0
     full_colors = []
     for cluster in clusters:
         colors = []
@@ -144,7 +229,7 @@ def color_scan(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, thres
 
         c += max(len(colors_no_bg), 1)
 
-    return c, max(len(full_colors), 1)
+    return c, max(len(full_colors), 1)'''
 
 def color_dist(color1, color2):
     return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (int(color1[2]) - int(color2[2])) ** 2)
@@ -199,7 +284,7 @@ if __name__ == "__main__":
 
 
 
-    img = cv2.imread('samples-task1/samples/IMG_20201127_002957.jpg')
+    img = cv2.imread('4.jpg')
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
@@ -241,6 +326,25 @@ if __name__ == "__main__":
     clusters = db_scan(result)
     n = color_scan(clusters, result, bg_color)
     print(n)
+
+    image_hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
+
+
+    def paint_coordinates(event, x, y, flag, params):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            print(f'Coordinates: ({x}, {y})')
+            print(f'Hue: {image_hsv[y][x]}')
+
+    cv2.namedWindow('image_window')
+    cv2.setMouseCallback('image_window', paint_coordinates)
+
+    while True:
+        cv2.imshow("image_window", result)
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+
+    cv2.destroyWindow("image_window")
     
 #grab cut for each rectangle´
     
