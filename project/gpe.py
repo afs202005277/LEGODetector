@@ -283,41 +283,41 @@ def draw_bb(img, contours):
 
 def andre(image, contours, original_image):
     temp = original_image.copy()
-    for d in [5, 10, 15, 20, 25]:
-        for s_color in [70, 80, 90, 100, 110, 120, 130, 140, 150, 160]:
-            for s_space in [70, 80, 90, 100, 110, 120, 130, 140, 150, 160]:
-                original_image = equalize_hist_wrapper(temp.copy(), d, s_color, s_space)
-                bbs = [cv2.boundingRect(contour) for contour in contours]
-                img_bbs = draw_bbs(original_image, bbs)
-                # display_images([image, contours_img, img_bbs], ['img', 'contour', 'bbs'])
+    successful_combs = [(15, 140, 110), (15, 140, 120), (20, 110, 70), (20, 130, 110), (20, 130, 140), (20, 140, 110),
+                        (20, 140, 140), (20, 150, 90), (25, 100, 80), (25, 110, 70), (25, 120, 140)]
+    for (d, s_color, s_space) in successful_combs:
+        original_image = equalize_hist_wrapper(temp.copy(), d, s_color, s_space)
+        bbs = [cv2.boundingRect(contour) for contour in contours]
+        img_bbs = draw_bbs(original_image, bbs)
+        # display_images([image, contours_img, img_bbs], ['img', 'contour', 'bbs'])
 
-                # Define image mask for the GrabCut output with same dimensions as the image
-                mask = np.zeros(original_image.shape[:2], np.uint8)
-                # Define the bounding box coordinates with the object of interest: (x, y, width, heigh)
-                bb = bbs[0]
+        # Define image mask for the GrabCut output with same dimensions as the image
+        mask = np.zeros(original_image.shape[:2], np.uint8)
+        # Define the bounding box coordinates with the object of interest: (x, y, width, heigh)
+        bb = bbs[0]
 
-                # Allocate memory for the two arrays that this algorithm internally uses for the segmentation of the foreground
-                # and background
-                bgModel = np.zeros((1, 65), np.float64)
-                fgModel = np.zeros((1, 65), np.float64)
+        # Allocate memory for the two arrays that this algorithm internally uses for the segmentation of the foreground
+        # and background
+        bgModel = np.zeros((1, 65), np.float64)
+        fgModel = np.zeros((1, 65), np.float64)
 
-                # Apply GrabCut
-                (mask, bgModel, fgModel) = cv2.grabCut(original_image, mask, bb, bgModel, fgModel, 10,
-                                                       cv2.GC_INIT_WITH_RECT)
+        # Apply GrabCut
+        (mask, bgModel, fgModel) = cv2.grabCut(original_image, mask, bb, bgModel, fgModel, 10,
+                                               cv2.GC_INIT_WITH_RECT)
 
-                # All definite background and probable background pixels are set to 0, and all definite foreground and probable
-                # foreground pixels are set to 1
-                output_mask = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1)
+        # All definite background and probable background pixels are set to 0, and all definite foreground and probable
+        # foreground pixels are set to 1
+        output_mask = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1)
 
-                foreground = original_image * mask[:, :, np.newaxis]
-                background = original_image * (1 - mask[:, :, np.newaxis])
-                # Scale the mask from the range [0, 1] to [0, 255]
-                output_mask = (output_mask * 255).astype("uint8")
+        foreground = original_image * mask[:, :, np.newaxis]
+        background = original_image * (1 - mask[:, :, np.newaxis])
+        # Scale the mask from the range [0, 1] to [0, 255]
+        output_mask = (output_mask * 255).astype("uint8")
 
-                # Apply a bitwise AND to the image using the generated mask by GrabCut to obtain the final result
-                grabcut_result = cv2.bitwise_and(original_image, original_image, mask=output_mask)
-                cv2.imwrite(f'tmp/{d}_{s_color}_{s_space}.png', grabcut_result)
-                # display_images([img_bbs, grabcut_result], ['bbs', 'grab_cut'])
+        # Apply a bitwise AND to the image using the generated mask by GrabCut to obtain the final result
+        grabcut_result = cv2.bitwise_and(original_image, original_image, mask=output_mask)
+        cv2.imwrite(f'tmp/{d}_{s_color}_{s_space}.png', grabcut_result)
+        # display_images([img_bbs, grabcut_result], ['bbs', 'grab_cut'])
     return image
 
 
