@@ -227,7 +227,7 @@ def grid(images_folder, values_folder, func, joblib_name, grid_name, error_name)
     test_values = get_expected_values(images_folder, values_folder)
 
     results = []
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=16) as executor:
         futures = []
         done = 0
         for image_path, (num_blocks, num_colors) in test_values:
