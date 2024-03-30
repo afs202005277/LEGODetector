@@ -8,7 +8,7 @@ from utils import display_images, resize_image
 BB_MIN_HEIGHT = 200
 BB_MIN_WIDTH = 200
 
-CLIP_LIMIT_CLAHE = 1.0
+CLIP_LIMIT_CLAHE = 2.0
 TILE_GRID_SIZE_CLAHE = (8, 8)
 
 BILATERAL_FILTER_D = 5
@@ -23,12 +23,13 @@ DILATE_ITERATIONS = 10
 def improve_img(img):
     gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+    blurred_img = cv2.medianBlur(gray_img, 11)
+    blurred_img = cv2.GaussianBlur(blurred_img, (3, 3), 0)
+
     clahe = cv2.createCLAHE(
         clipLimit=CLIP_LIMIT_CLAHE, tileGridSize=TILE_GRID_SIZE_CLAHE
     )
-    enhanced_img = clahe.apply(gray_img)
-
-    enhanced_img = gray_img
+    enhanced_img = clahe.apply(blurred_img)
 
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
     sharp_img = cv2.filter2D(enhanced_img, -1, kernel)
@@ -108,9 +109,10 @@ def daniel(img, display=True):
         #     (600, 800),
         # )
         display_images(
-            [enhanced_img, edges],
+            [enhanced_img, contours_img, edges],
             [
                 "Enhanced Image",
+                "Contours",
                 "Edges",
             ],
             (600, 800),

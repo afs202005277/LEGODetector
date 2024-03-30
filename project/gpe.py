@@ -199,7 +199,7 @@ if __name__ == "__main__":
 
 
 
-    img = cv2.imread('1.jpg')
+    img = cv2.imread('samples-task1/samples/IMG_20201127_002957.jpg')
     # resize image
     ratio = img.shape[1] / img.shape[0]
     height = 800
