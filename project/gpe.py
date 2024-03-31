@@ -9,10 +9,10 @@ import copy
 SAME_COLOR_THRESHOLD = 110
 SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
-MIN_POINTS_COLOR = 50
+MIN_POINTS_COLOR = 0.35
 
 colors_hue = {
-    "red": 4,
+    "red": 5,
     "orange": 21,
     "yellow": 35,
     "lime": 45,
@@ -127,11 +127,9 @@ def db_scan(image):
     return clusters
 
 
-def color_scan(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2,
-               threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR):
+def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=colors_hue):
     c = 0
     full_colors = []
-    one_color = False
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     for cluster in clusters:
         colors = []
@@ -174,10 +172,10 @@ def color_scan(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, thres
         for color in colors_dict:
             bright, dark = colors_dict[color]
 
-            if bright >= MIN_POINTS_COLOR:
+            if bright >= len(cluster) * min_points_color:
                 colors.append(color)
 
-            if dark >= MIN_POINTS_COLOR:
+            if dark >= len(cluster) * min_points_color:
                 if color == "white":
                     colors.append("black")
                 else:
@@ -185,18 +183,15 @@ def color_scan(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, thres
 
         c += max(1, len(colors) - 1)
 
-        print(colors)
-
-        if len(colors) == 1:
-            one_color = True
 
         for color in colors:
             if color not in full_colors:
                 full_colors.append(color)
 
-    cs = max(len(full_colors), 1) if one_color else max(len(full_colors) - 1, 1)
 
-    return c, cs
+                
+
+    return c, len(full_colors)
 
     '''c = 0
     full_colors = []
@@ -345,13 +340,13 @@ def main(image_path):
     img_hsv[:, :, 2] = np.clip(img_hsv[:, :, 2] + 3, 0, 255)
     img = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
 
-    img = cv2.medianBlur(img, 11)
+    img = cv2.medianBlur(img, 15)
     img = cv2.GaussianBlur(img, (3, 3), sigmaX=0)
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(gray, 50, 125)
 
-    edges = cv2.dilate(edges, None, iterations=10)
+    edges = cv2.dilate(edges, None, iterations=6)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -369,17 +364,17 @@ def main(image_path):
     bg_color = get_bg_color(img, result)
 
     # Detect how many pieces are in the image
-    clusters = db_scan(result)
     result = andre(result, contours, original_image)
-    n = color_scan(clusters, result, bg_color)
+    clusters = db_scan(result)
+    n = color_scan(clusters, result)
     print(n)
 
     image_hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
 
-    def paint_coordinates(event, x, y, flag, params):
+    '''def paint_coordinates(event, x, y, flag, params):
         if event == cv2.EVENT_LBUTTONDOWN:
             print(f'Coordinates: ({x}, {y})')
-            print(f'Hue: {image_hsv[y][x]}')
+            print(f'Hue: {image_hsv[y][x]}')'''
 
     # cv2.namedWindow('image_window')
     # cv2.setMouseCallback('image_window', paint_coordinates)
@@ -400,10 +395,10 @@ def main(image_path):
         grab_cut_img = grab_cut(img, rect)
         result2 = cv2.bitwise_or(result2, grab_cut_img)'''
     # cv2.imshow('Original Image', img)
-    # cv2.imshow('Filled Contours', result)
+    cv2.imshow('Filled Contours', result)
     # cv2.imshow('Grab Cut', result2)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":

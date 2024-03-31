@@ -192,10 +192,14 @@ def store_results(data, grid_name, error_name):
 
 def get_parameters_gpe_blocks():
     parameters = dict()
-    parameters['threshold1'] = [20, 40, 50, 60, 70, 80, 90, 100, 110, 120]
-    parameters['threshold2'] = [20, 40, 50, 60, 70, 80, 90, 100, 110, 120]
-    parameters['threshold3'] = [20, 40, 50, 60, 70, 80, 90, 100, 110, 120]
-    parameters['minpoints'] = [20, 40, 50, 60, 80, 100, 110]
+    parameters['median'] = [11, 15]
+    parameters['dilate'] = [6, 10]
+    parameters['minpoints'] = [0.3, 0.35, 0.4, 0.45]
+    parameters['red'] = [2, 3, 4, 5, 6, 7, 8]
+    parameters['orange'] = [19, 20, 21, 22, 23]
+    parameters['turquoise'] = [85, 86, 87, 88, 89]
+    parameters['pink'] = [163, 164, 165, 166, 167]
+    
 
     param_combinations = []
     for combo in list(itertools.product(*parameters.values())):
