@@ -26,11 +26,12 @@ def remove_background_canny(image, params):
 
     result = cv2.bitwise_and(image, result)
 
-    return result
+    return result, contours
 
 
 def evaluate_function(image, params):
-    without_background = remove_background_canny(image, params)
+    without_background, contours = remove_background_canny(image, params)
+    without_background = gpe.andre(without_background, contours, image)
     clusters = gpe.db_scan(without_background)
     colors_hue = {
     "red": params['red'],
