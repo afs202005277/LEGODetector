@@ -98,6 +98,8 @@ def run_tests(images_folder, values_folder, module):
         results_blocks = (
             blocks_df.groupby("function_name")["error"].mean()
         ).sort_values()
+        results_blocks.to_csv('results_blocks.csv', index=False)
+        blocks_df.to_csv('blocks_df.csv', index=False)
         best_function = results_blocks.index[0]
         lowest_error = results_blocks.iloc[0]
         print("BLOCKS:")
@@ -109,6 +111,8 @@ def run_tests(images_folder, values_folder, module):
         results_colors = (
             colors_df.groupby("function_name")["error"].mean()
         ).sort_values()
+        results_colors.to_csv('results_colors.csv', index=False)
+        colors_df.to_csv('colors_df.csv', index=False)
         best_function = results_colors.index[0]
         lowest_error = results_colors.iloc[0]
         print("COLORS:")
@@ -199,7 +203,6 @@ def get_parameters_gpe_blocks():
     parameters['orange'] = [19, 20, 21, 22, 23]
     parameters['turquoise'] = [85, 86, 87, 88, 89]
     parameters['pink'] = [163, 164, 165, 166, 167]
-    
 
     param_combinations = []
     for combo in list(itertools.product(*parameters.values())):
@@ -259,6 +262,6 @@ if __name__ == "__main__":
         "grid_dani.csv",
         "error_dani.csv",
     )'''
-    grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
-    # main.DISPLAY = False
-    #run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    # grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
+    main.DISPLAY = False
+    run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)

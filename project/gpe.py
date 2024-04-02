@@ -395,10 +395,10 @@ def main(image_path):
         grab_cut_img = grab_cut(img, rect)
         result2 = cv2.bitwise_or(result2, grab_cut_img)'''
     # cv2.imshow('Original Image', img)
-    cv2.imshow('Filled Contours', result)
+    # cv2.imshow('Filled Contours', result)
     # cv2.imshow('Grab Cut', result2)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
