@@ -31,8 +31,7 @@ def remove_background_canny_v3(image_path):
     image = cv2.medianBlur(image, 15)
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 50, 125)
+    edges = cv2.Canny(image, 50, 125)
 
     edges = cv2.dilate(edges, None, iterations=10)
 

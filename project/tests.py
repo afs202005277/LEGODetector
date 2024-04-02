@@ -23,6 +23,8 @@ def check_values(test_values, count_blocks_functions, count_colors_functions, mo
     i = 1
     for image_path, (num_blocks, num_colors) in test_values:
         print(i)
+        print(image_path)
+        print()
         i += 1
         if TEST_COUNT_BLOCKS:
             for count_blocks_name in count_blocks_functions:

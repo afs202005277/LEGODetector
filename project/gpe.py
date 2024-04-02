@@ -343,8 +343,8 @@ def main(image_path):
     img = cv2.medianBlur(img, 15)
     img = cv2.GaussianBlur(img, (3, 3), sigmaX=0)
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 50, 125)
+    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(img, 50, 125)
 
     edges = cv2.dilate(edges, None, iterations=6)
 
@@ -402,4 +402,4 @@ def main(image_path):
 
 
 if __name__ == "__main__":
-    main('4.jpg')
+    main('test.jpg')
