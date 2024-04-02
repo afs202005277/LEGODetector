@@ -342,8 +342,7 @@ def detect_pieces_v5(filename):
     image, without_background, contours = remove_background_canny_v3(filename)
     without_background = gpe.andre(without_background, contours, image)
     clusters = gpe.db_scan(without_background)
-    bg_color = gpe.get_bg_color(image, without_background)
-    pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
+    pieces, colors = gpe.color_scan(clusters, without_background)
     return pieces
 
 
@@ -369,8 +368,7 @@ def count_colors_v4(filename):
     image, without_background, contours = remove_background_canny_v3(filename)
     without_background = gpe.andre(without_background, contours, image)
     clusters = gpe.db_scan(without_background)
-    bg_color = gpe.get_bg_color(image, without_background)
-    pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
+    pieces, colors = gpe.color_scan(clusters, without_background)
     return colors
 
 
