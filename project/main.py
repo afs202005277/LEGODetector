@@ -79,7 +79,7 @@ def remove_background_canny_v2(image_path):
 
     result = cv2.bitwise_and(image, result)
 
-    return image, result, contours
+    return image, result
 
 
 def remove_background_canny(image_path):
@@ -339,7 +339,7 @@ def detect_pieces_v4(filename):
 
 
 def detect_pieces_v5(filename):
-    image, without_background, contours = remove_background_canny_v2(filename)
+    image, without_background, contours = remove_background_canny_v3(filename)
     without_background = gpe.andre(without_background, contours, image)
     clusters = gpe.db_scan(without_background)
     bg_color = gpe.get_bg_color(image, without_background)
@@ -366,7 +366,7 @@ def count_colors_v3(filename):
 
 
 def count_colors_v4(filename):
-    image, without_background, contours = remove_background_canny_v2(filename)
+    image, without_background, contours = remove_background_canny_v3(filename)
     without_background = gpe.andre(without_background, contours, image)
     clusters = gpe.db_scan(without_background)
     bg_color = gpe.get_bg_color(image, without_background)
