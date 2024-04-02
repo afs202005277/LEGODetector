@@ -11,6 +11,40 @@ DISPLAY = False
 TARGET_WIDTH = 944
 TARGET_HEIGHT = 1133
 
+def remove_background_canny_v3(image_path):
+    image = cv2.imread(image_path)
+
+    # resize image
+    ratio = image.shape[1] / image.shape[0]
+    height = 800
+    width = int(height * ratio)
+
+    dim = (width, height)
+    image = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)
+
+    image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] + 12, 0, 255)
+    image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2] + 3, 0, 255)
+    image = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR)
+
+    image = cv2.medianBlur(image, 15)
+    image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(gray, 50, 125)
+
+    edges = cv2.dilate(edges, None, iterations=10)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    result = np.zeros_like(image)
+    for contour in contours:
+        if cv2.contourArea(contour) > 0:
+            cv2.drawContours(result, [contour], 0, (255, 255, 255), cv2.FILLED)
+
+    result = cv2.bitwise_and(image, result)
+
+    return image, result, contours
+
 def remove_background_canny_v2(image_path):
     image = cv2.imread(image_path)
 
@@ -302,6 +336,15 @@ def detect_pieces_v4(filename):
     pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
     return pieces
 
+def detect_pieces_v5(filename):
+    image, without_background, contours = remove_background_canny_v2(filename)
+    without_background = gpe.andre(without_background, contours, image)
+    clusters = gpe.db_scan(without_background)
+    bg_color = gpe.get_bg_color(image, without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
+    return pieces
+
+
 
 def count_colors_v1(filename):
     original, _ = image_setup(filename)
@@ -314,6 +357,14 @@ def count_colors_v2(filename):
 
 def count_colors_v3(filename):
     image, without_background = remove_background_canny_v2(filename)
+    clusters = gpe.db_scan(without_background)
+    bg_color = gpe.get_bg_color(image, without_background)
+    pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
+    return colors
+
+def count_colors_v4(filename):
+    image, without_background, contours = remove_background_canny_v2(filename)
+    without_background = gpe.andre(without_background, contours, image)
     clusters = gpe.db_scan(without_background)
     bg_color = gpe.get_bg_color(image, without_background)
     pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
