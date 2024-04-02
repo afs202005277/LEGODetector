@@ -331,7 +331,7 @@ def detect_pieces_v3(filename):
 
 
 def detect_pieces_v4(filename):
-    image, without_background, _ = remove_background_canny_v2(filename)
+    image, without_background = remove_background_canny_v2(filename)
     clusters = gpe.db_scan(without_background)
     bg_color = gpe.get_bg_color(image, without_background)
     pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
@@ -358,7 +358,7 @@ def count_colors_v2(filename):
 
 
 def count_colors_v3(filename):
-    image, without_background, _ = remove_background_canny_v2(filename)
+    image, without_background = remove_background_canny_v2(filename)
     clusters = gpe.db_scan(without_background)
     bg_color = gpe.get_bg_color(image, without_background)
     pieces, colors = gpe.color_scan(clusters, without_background, bg_color)
