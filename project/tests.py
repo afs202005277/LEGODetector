@@ -15,9 +15,10 @@ TEST_COUNT_BLOCKS = True
 TEST_COUNT_COLORS = True
 NUM_TESTS = 50  # max is 50
 TEST_TARGET = main
+NUM_WORKERS = 8
 
 
-def check_values(test_values, count_blocks_functions, count_colors_functions, module):
+def check_values(test_values, count_blocks_functions, count_colors_functions, module=TEST_TARGET):
     blocks_dict = dict()
     colors_dict = dict()
     i = 1
@@ -81,14 +82,39 @@ def dict_to_df(data):
     )
 
 
+def slice_list_into_equal_parts(lst, num_parts):
+    avg = len(lst) / float(num_parts)
+    out = []
+    last = 0.0
+
+    while last < len(lst):
+        out.append(lst[int(last):int(last + avg)])
+        last += avg
+
+    return out
+
+
 def run_tests(images_folder, values_folder, module):
     test_values = get_expected_values(images_folder, values_folder)
     count_blocks_functions = get_testing_functions(module, "detect_pieces")
     count_colors_functions = get_testing_functions(module, "count_colors")
 
-    blocks_dict, colors_dict = check_values(
-        test_values, count_blocks_functions, count_colors_functions, module
-    )
+    blocks_dict = dict()
+    colors_dict = dict()
+
+    with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
+        futures = []
+        done = 0
+        tasks = slice_list_into_equal_parts(test_values, NUM_WORKERS)
+        for task_list in tasks:
+            future = executor.submit(check_values, task_list, count_blocks_functions, count_colors_functions)
+            futures.append(future)
+        for future in as_completed(futures):
+            done += 1
+            print(f"{done}/{len(futures)} : {datetime.datetime.now()}")
+            b_dict, c_dict = future.result()
+            blocks_dict.update(b_dict)
+            colors_dict.update(c_dict)
 
     blocks_df = dict_to_df(blocks_dict)
     colors_df = dict_to_df(colors_dict)
