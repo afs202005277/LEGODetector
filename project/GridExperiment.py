@@ -1,5 +1,5 @@
 import cv2
-import gpe
+import final
 import numpy as np
 
 
@@ -13,8 +13,7 @@ def remove_background_canny(image, params):
     image = cv2.medianBlur(image, params['median'])
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, 50, 125)
+    edges = cv2.Canny(image, 50, 125)
 
     edges = cv2.dilate(edges, None, iterations=params['dilate'])
 
@@ -31,8 +30,8 @@ def remove_background_canny(image, params):
 
 def evaluate_function(image, params):
     without_background, contours = remove_background_canny(image, params)
-    without_background = gpe.andre(without_background, contours, image)
-    clusters = gpe.db_scan(without_background)
+    without_background = final.image_segmentation(without_background, contours, image)
+    clusters = final.db_scan(without_background)
     colors_hue = {
     "red": params['red'],
     "orange": params['orange'],
@@ -47,5 +46,5 @@ def evaluate_function(image, params):
     "magenta": 155,
     "pink": params['pink'],
 }
-    pieces, colors = gpe.color_scan(clusters, without_background, params['minpoints'], colors_hue)
+    pieces, colors = final.color_scan(clusters, without_background, params['minpoints'], colors_hue)
     return colors
