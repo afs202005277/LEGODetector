@@ -160,7 +160,7 @@ def clear_clusters(image, clusters, ratio):
 
 def db_scan(image):
     clusters = []
-    ratio = image.shape[0] // 75
+    ratio = image.shape[0] // 150
     # For every pixel in the image
     for i in range(0, image.shape[0], ratio):
         for j in range(0, image.shape[1], ratio):
@@ -257,7 +257,21 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
     return c, len(full_colors)
 
 
-def color_scan_bgr(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, min_points_color=MIN_POINTS_COLOR_BGR):
+"""
+Scan clusters and determine their dominant colors using BGR color space.
+
+Args:
+    clusters (list): List of clusters.
+    image (numpy.ndarray): The input image.
+    threshold1 (float, optional): Threshold for color distance. Defaults to SAME_COLOR_THRESHOLD.
+    threshold2 (float, optional): Threshold for color distance for merging. Defaults to SAME_COLOR_THRESHOLD2.
+    threshold3 (float, optional): Threshold for color distance for clearing colors. Defaults to SAME_COLOR_THRESHOLD3.
+    min_points_color (int, optional): Minimum points for a color to be considered dominant. Defaults to MIN_POINTS_COLOR_BGR.
+
+Returns:
+    tuple: A tuple containing the total number of colors detected and the number of distinct colors.
+"""
+def color_scan_bgr(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR_BGR):
     c = 0
     full_colors = []
     for cluster in clusters:
@@ -276,7 +290,6 @@ def color_scan_bgr(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, t
             if not found:
                 colors.append(color)
         colors = clear_colors(colors, threshold2)
-
         temp = -1
         while temp != len(colors):
             temp = len(colors)
@@ -285,35 +298,40 @@ def color_scan_bgr(clusters, image, bg_color, threshold1=SAME_COLOR_THRESHOLD, t
                     colors.pop(i)
                     break
 
-
-        colors_no_bg = remove_bg(colors, bg_color)
-        
-        for color in colors_no_bg:
+        for color in colors:
             full_colors.append(color)
 
-        c += max(len(colors_no_bg), 1)
+        c += max(len(colors) - 1, 1)
+    full_colors = clear_colors(full_colors, threshold3)
 
-    return c, max(len(full_colors), 1)
+    return c, max(len(full_colors) - 1, 1)
 
+"""
+Calculate the Euclidean distance between two colors.
 
+Args:
+    color1 (tuple): The first color in BGR format.
+    color2 (tuple): The second color in BGR format.
+
+Returns:
+    float: The Euclidean distance between the two colors.
+"""
 def color_dist(color1, color2):
     return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (
             int(color1[2]) - int(color2[2])) ** 2)
 
+"""
+Count the number of points in a cluster with similar color to a given color.
 
-def remove_bg(colors, bg_color):
-    min_dist = 1000000
-    min_val = None
-    if len(colors) < 2:
-        return colors
-    for i, color in enumerate(colors):
-        if color_dist(color, bg_color) < min_dist:
-            min_dist = color_dist(color, bg_color)
-            min_val = i
-    colors.pop(min_val)
-    return colors
+Args:
+    color (tuple): The target color in BGR format.
+    cluster (list): List of points representing a cluster.
+    image (numpy.ndarray): The input image.
+    threshold (float, optional): Threshold for color distance. Defaults to SAME_COLOR_THRESHOLD2.
 
-
+Returns:
+    int: The number of points with similar color in the cluster.
+"""
 def points_with_color(color, cluster, image, threshold=SAME_COLOR_THRESHOLD2):
     c = 0
     for point in cluster:
@@ -321,44 +339,22 @@ def points_with_color(color, cluster, image, threshold=SAME_COLOR_THRESHOLD2):
             c += 1
     return c
 
+"""
+Clear similar colors in the given list of colors.
+
+Args:
+    colors (list): List of colors.
+    threshold (float, optional): Threshold for color distance. Defaults to SAME_COLOR_THRESHOLD2.
+
+Returns:
+    list: List of cleared colors.
+"""
 def clear_colors(colors, threshold=SAME_COLOR_THRESHOLD2):
     temp = -1
     while temp != len(colors):
         temp = len(colors)
         colors = merge_colors(colors, threshold)
     return colors
-
-def get_bg_color(initial_image, image_no_bg):
-    bg_color = None
-    while True:
-        height = random.randint(0, image_no_bg.shape[0] - 1)
-        width = random.randint(0, image_no_bg.shape[1] - 1)
-        if is_black(image_no_bg[height][width]):
-            bg_color = initial_image[height][width]
-            break
-    return bg_color
-
-
-"""
-Perform GrabCut segmentation on the given image using the specified rectangle.
-
-Args:
-    image (numpy.ndarray): The input image.
-    rect (tuple): The rectangle (x, y, width, height) specifying the region of interest.
-
-Returns:
-    numpy.ndarray: The segmented image.
-"""
-
-
-def grab_cut(image, rect):
-    mask = np.zeros(image.shape[:2], np.uint8)
-    bgdModel = np.zeros((1, 65), np.float64)
-    fgdModel = np.zeros((1, 65), np.float64)
-    cv2.grabCut(image, mask, rect, bgdModel, fgdModel, 8, cv2.GC_INIT_WITH_RECT)
-    mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype("uint8")
-    return image * mask2[:, :, np.newaxis]
-
 
 """
 Perform segmentation on the input image using GrabCut with bounding rectangles specified by contours.
@@ -384,7 +380,7 @@ def image_segmentation(image, contours, original_image):
     for bb_idx in range(len(bbs)):
         bb = bbs[bb_idx]
         cv2.setRNGSeed(0)
-        (mask, bg_model, fgModel) = cv2.grabCut(original_image, mask, bb, bg_model, fg_model, 10,
+        (mask, bg_model, fgModel) = cv2.grabCut(original_image, mask, bb, bg_model, fg_model, 8,
                                                 cv2.GC_INIT_WITH_RECT)
 
         output_mask = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1)
@@ -398,7 +394,7 @@ def image_segmentation(image, contours, original_image):
             fg_model.fill(0)
 
     if len(masks) == 0:
-        return image
+        return np.zeros_like(image), bbs
     merged_mask = np.zeros_like(masks[0])
     for mask in masks:
         merged_mask = cv2.bitwise_or(merged_mask, mask)
@@ -427,7 +423,6 @@ def background_removal(image):
     image = cv2.medianBlur(image, 11)
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     edges = cv2.Canny(image, 50, 125)
 
     edges = cv2.dilate(edges, None, iterations=6)
@@ -483,8 +478,7 @@ def main(image_path):
     clusters = db_scan(result)
 
     # 5. Scan clusters and determine their dominant colors (Best to find blocks)
-    bg_color = get_bg_color(original_image, result)
-    num_blocks, _ = color_scan_bgr(clusters, result, bg_color)
+    num_blocks, _ = color_scan_bgr(clusters, result)
 
     # 5. Scan clusters and determine their dominant colors (Best to find colors)
     _, num_colors = color_scan(clusters, result)

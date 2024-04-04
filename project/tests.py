@@ -222,8 +222,6 @@ def store_results(data, grid_name, error_name):
 
 def get_parameters_gpe_blocks():
     parameters = dict()
-    parameters['median'] = [11, 15]
-    parameters['dilate'] = [6, 10]
     parameters['minpoints'] = [0.3, 0.35, 0.4, 0.45]
     parameters['red'] = [2, 3, 4, 5, 6, 7, 8]
     parameters['orange'] = [19, 20, 21, 22, 23]
@@ -288,6 +286,6 @@ if __name__ == "__main__":
         "grid_dani.csv",
         "error_dani.csv",
     )'''
-    # grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
+    grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
     main.DISPLAY = False
-    run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    #run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
