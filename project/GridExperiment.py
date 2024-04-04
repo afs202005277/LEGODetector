@@ -1,17 +1,15 @@
-import cv2
 import final
-import numpy as np
-
 
 
 def evaluate_function(image, params):
     # 2. Resize the image
-    image = final.resize_image(image)
 
+    image = final.resize_image(image)
+    
     original_image = image.copy()
 
     without_background, contours = final.background_removal(image)
-    without_background = final.image_segmentation(without_background, contours, original_image)
+    without_background, _ = final.image_segmentation(without_background, contours, original_image)
     clusters = final.db_scan(without_background)
     colors_hue = {
     "red": params['red'],
