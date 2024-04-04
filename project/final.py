@@ -1,3 +1,6 @@
+import json
+import sys
+
 import cv2
 import numpy as np
 from utils import equalize_hist_wrapper
@@ -24,7 +27,6 @@ colors_hue = {
     "pink": 165,
 }
 
-
 """
 Check if a pixel represents the color black.
 
@@ -34,8 +36,11 @@ Args:
 Returns:
     bool: True if the pixel represents the color black, False otherwise.
 """
+
+
 def is_black(pixel):
     return pixel[0] == 0 and pixel[1] == 0 and pixel[2] == 0
+
 
 """
 Check if a pixel (i, j) belongs to the same cluster as the given cluster.
@@ -50,6 +55,8 @@ Args:
 Returns:
     bool: True if the pixel belongs to the same cluster, False otherwise.
 """
+
+
 def same_cluster(image, i, j, cluster, ratio=1):
     neighbors = [
         (i - ratio, j - ratio),
@@ -72,6 +79,7 @@ def same_cluster(image, i, j, cluster, ratio=1):
                 return True
     return False
 
+
 """
 Merge clusters that are adjacent or overlapping.
 
@@ -83,6 +91,8 @@ Args:
 Returns:
     list: List of merged clusters.
 """
+
+
 def merge_clusters(image, clusters, ratio):
     for i in range(len(clusters)):
         for j in range(i + 1, len(clusters)):
@@ -106,6 +116,8 @@ Args:
 Returns:
     list: List of cleared clusters.
 """
+
+
 def clear_clusters(image, clusters, ratio):
     temp = -1
     while temp != len(clusters):
@@ -123,6 +135,8 @@ def clear_clusters(image, clusters, ratio):
     Returns:
         list: List of clusters.
 """
+
+
 def db_scan(image):
     clusters = []
     ratio = image.shape[0] // 150
@@ -144,6 +158,7 @@ def db_scan(image):
     clusters = clear_clusters(image, clusters, ratio)
     return clusters
 
+
 """
     Scan clusters and determine their dominant colors.
 
@@ -156,6 +171,8 @@ def db_scan(image):
     Returns:
         tuple: A tuple containing the number of pieces detected and the number of distinct colors.
     """
+
+
 def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=colors_hue):
     c = 0
     full_colors = []
@@ -212,15 +229,12 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
 
         c += max(1, len(colors) - 1)
 
-
         for color in colors:
             if color not in full_colors:
                 full_colors.append(color)
 
-
-                
-
     return c, len(full_colors)
+
 
 """
 Perform GrabCut segmentation on the given image using the specified rectangle.
@@ -232,6 +246,8 @@ Args:
 Returns:
     numpy.ndarray: The segmented image.
 """
+
+
 def grab_cut(image, rect):
     mask = np.zeros(image.shape[:2], np.uint8)
     bgdModel = np.zeros((1, 65), np.float64)
@@ -252,6 +268,8 @@ Args:
 Returns:
     numpy.ndarray: The filtered image after segmentation.
 """
+
+
 def image_segmentation(image, contours, original_image):
     temp = copy.deepcopy(original_image)
     bbs = [cv2.boundingRect(contour) for contour in contours]
@@ -280,7 +298,8 @@ def image_segmentation(image, contours, original_image):
         merged_mask = cv2.bitwise_or(merged_mask, mask)
     filtered_image = cv2.bitwise_and(image, image, mask=merged_mask)
 
-    return filtered_image
+    return filtered_image, bbs
+
 
 """
 Perform background removal on the given image using Canny edge detection and contour extraction.
@@ -291,6 +310,8 @@ Args:
 Returns:
     tuple: A tuple containing the resulting image with the background removed and the extracted contours.
 """
+
+
 def background_removal(image):
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] + 12, 0, 255)
@@ -315,6 +336,7 @@ def background_removal(image):
 
     return result, contours
 
+
 """
 Resize the input image while preserving aspect ratio.
 
@@ -325,6 +347,8 @@ Args:
 Returns:
     numpy.ndarray: The resized image.
 """
+
+
 def resize_image(image, height=800):
     ratio = image.shape[1] / image.shape[0]
     height = 800
@@ -336,7 +360,6 @@ def resize_image(image, height=800):
 
 
 def main(image_path):
-
     # 1. Load the image
     image = cv2.imread(image_path)
 
@@ -347,16 +370,44 @@ def main(image_path):
 
     # 3. Image preprocessing: Background removal
     result, contours = background_removal(image)
-    result = image_segmentation(result, contours, original_image)
-    
+    result, bbs = image_segmentation(result, contours, original_image)
+
     # 4. Perform DBSCAN on the image
     clusters = db_scan(result)
-    
+
     # 5. Scan clusters and determine their dominant colors
-    n = color_scan(clusters, result)
-    
-    print(n)
+    num_blocks, num_colors = color_scan(clusters, result)
+
+    return num_blocks, num_colors, bbs
+
+
+def process_images(input_file, output_file):
+    with open(input_file, 'r') as f:
+        data = json.load(f)
+
+    results = []
+
+    for image_file in data["image_files"]:
+        print(image_file)
+        num_blocks, num_colors, bounding_boxes = main(image_file)
+        bounding_boxes = [{"xmin": x, "ymin": y, "xmax": x + w, "ymax": y + h} for (x, y, w, h) in bounding_boxes]
+
+        results.append({
+            "file_name": image_file,
+            "num_colors": num_colors,
+            "num_detections": num_blocks,
+            "detected_objects": bounding_boxes
+        })
+
+    output_data = {"results": results}
+
+    with open(output_file, 'w') as f:
+        json.dump(output_data, f, indent=2)
 
 
 if __name__ == "__main__":
-    main('9.jpg')
+    if len(sys.argv) != 3:
+        print("Usage: python script.py input_file output_file")
+        sys.exit(1)
+
+    process_images(sys.argv[1], sys.argv[2])
