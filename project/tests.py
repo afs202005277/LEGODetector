@@ -7,6 +7,7 @@ import joblib
 import pandas as pd
 import main
 import GridExperiment
+import final
 import daniel
 import cv2
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -14,8 +15,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 TEST_COUNT_BLOCKS = True
 TEST_COUNT_COLORS = True
 NUM_TESTS = 50  # max is 50
-TEST_TARGET = main
-NUM_WORKERS = 8
+TEST_TARGET = final
+NUM_WORKERS = 16
 
 
 def check_values(test_values, count_blocks_functions, count_colors_functions, module=TEST_TARGET):
@@ -23,9 +24,6 @@ def check_values(test_values, count_blocks_functions, count_colors_functions, mo
     colors_dict = dict()
     i = 1
     for image_path, (num_blocks, num_colors) in test_values:
-        print(i)
-        print(image_path)
-        print()
         i += 1
         if TEST_COUNT_BLOCKS:
             for count_blocks_name in count_blocks_functions:

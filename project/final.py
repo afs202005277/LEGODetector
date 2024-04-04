@@ -5,7 +5,6 @@ import cv2
 import numpy as np
 from utils import equalize_hist_wrapper
 import math
-import copy
 
 SAME_COLOR_THRESHOLD = 110
 SAME_COLOR_THRESHOLD2 = 40
@@ -271,27 +270,28 @@ Returns:
 
 
 def image_segmentation(image, contours, original_image):
-    temp = copy.deepcopy(original_image)
     bbs = [cv2.boundingRect(contour) for contour in contours]
     combination = (15, 160, 100)
     masks = []
-    original_image = copy.deepcopy(temp)
     original_image = equalize_hist_wrapper(original_image, *combination)
+    mask = np.zeros(original_image.shape[:2], np.uint8)
+    bg_model = np.zeros((1, 65), np.float64)
+    fg_model = np.zeros((1, 65), np.float64)
     for bb_idx in range(len(bbs)):
-        mask = np.zeros(original_image.shape[:2], np.uint8)
         bb = bbs[bb_idx]
-
-        bgModel = np.zeros((1, 65), np.float64)
-        fgModel = np.zeros((1, 65), np.float64)
-
         cv2.setRNGSeed(0)
-        (mask, bgModel, fgModel) = cv2.grabCut(original_image, mask, bb, bgModel, fgModel, 10,
-                                               cv2.GC_INIT_WITH_RECT)
+        (mask, bg_model, fgModel) = cv2.grabCut(original_image, mask, bb, bg_model, fg_model, 10,
+                                                cv2.GC_INIT_WITH_RECT)
 
         output_mask = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1)
 
         output_mask = (output_mask * 255).astype("uint8")
-        masks.append(copy.deepcopy(output_mask))
+        masks.append(output_mask)
+
+        if bb_idx < len(bbs) - 1:
+            mask.fill(0)
+            bg_model.fill(0)
+            fg_model.fill(0)
 
     merged_mask = np.zeros_like(masks[0])
     for mask in masks:
@@ -379,6 +379,16 @@ def main(image_path):
     num_blocks, num_colors = color_scan(clusters, result)
 
     return num_blocks, num_colors, bbs
+
+
+def detect_pieces_v1(filename):
+    n_blocks, _, _ = main(filename)
+    return n_blocks
+
+
+def count_colors_v1(filename):
+    _, n_colors, _ = main(filename)
+    return n_colors
 
 
 def process_images(input_file, output_file):
