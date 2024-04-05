@@ -434,7 +434,7 @@ Returns:
 """
 
 
-def background_removal(image):
+def background_removal(image, iterations=10):
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     image_hsv[:, :, 1] = np.clip(image_hsv[:, :, 1] + 12, 0, 255)
     image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2] + 3, 0, 255)
@@ -446,7 +446,7 @@ def background_removal(image):
 
     edges = cv2.Canny(image, 50, 125)
 
-    edges = cv2.dilate(edges, None, iterations=10)
+    edges = cv2.dilate(edges, None, iterations=iterations)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -500,6 +500,10 @@ def main(image_path):
 
     # 5. Scan clusters and determine their dominant colors (Best to find blocks)
     num_blocks, _ = color_scan_bgr(clusters, result)
+
+    # 3. Image preprocessing: Background removal
+    result, contours = background_removal(image, iterations=6)
+    result, bbs = image_segmentation(result, contours, original_image)
 
     # 5. Scan clusters and determine their dominant colors (Best to find colors)
     _, num_colors = color_scan(clusters, result)
