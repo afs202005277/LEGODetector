@@ -200,8 +200,10 @@ def db_scan(image):
 
 
 def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=colors_hue):
+    # image = cv2.GaussianBlur(image, (41, 41), 0)
+
     c = 0
-    full_colors = []
+    full_colors = set()
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     for cluster in clusters:
         colors = []
@@ -257,9 +259,7 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
 
         c += len(colors)
 
-        for color in colors:
-            if color not in full_colors:
-                full_colors.append(color)
+        full_colors.update(colors)
 
     return c, len(full_colors)
 

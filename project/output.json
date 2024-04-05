@@ -1,0 +1,65 @@
+{
+  "results": [
+    {
+      "file_name": "2.jpg",
+      "num_colors": 8,
+      "num_detections": 9,
+      "detected_objects": [
+        {
+          "xmin": 368,
+          "ymin": 499,
+          "xmax": 555,
+          "ymax": 698
+        },
+        {
+          "xmin": 747,
+          "ymin": 489,
+          "xmax": 898,
+          "ymax": 608
+        },
+        {
+          "xmin": 859,
+          "ymin": 341,
+          "xmax": 970,
+          "ymax": 453
+        },
+        {
+          "xmin": 277,
+          "ymin": 289,
+          "xmax": 412,
+          "ymax": 484
+        },
+        {
+          "xmin": 494,
+          "ymin": 216,
+          "xmax": 613,
+          "ymax": 337
+        },
+        {
+          "xmin": 276,
+          "ymin": 161,
+          "xmax": 386,
+          "ymax": 260
+        },
+        {
+          "xmin": 614,
+          "ymin": 80,
+          "xmax": 733,
+          "ymax": 201
+        },
+        {
+          "xmin": 487,
+          "ymin": 26,
+          "xmax": 615,
+          "ymax": 118
+        },
+        {
+          "xmin": 953,
+          "ymin": 0,
+          "xmax": 1066,
+          "ymax": 71
+        }
+      ]
+    }
+  ]
+}
