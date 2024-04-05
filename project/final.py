@@ -1,6 +1,5 @@
 import json
 import sys
-import random
 import cv2
 import numpy as np
 from utils import equalize_hist_wrapper
@@ -9,7 +8,7 @@ import math
 SAME_COLOR_THRESHOLD = 110
 SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
-MIN_POINTS_COLOR = 0.3
+MIN_POINTS_COLOR = 0.26
 MIN_POINTS_COLOR_BGR = 50
 
 colors_hue = {
@@ -24,7 +23,7 @@ colors_hue = {
     "blue": 125,
     "purple": 135,
     "magenta": 155,
-    "pink": 165,
+    "pink": 175,
 }
 
 """
@@ -213,16 +212,18 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
             "purple": [0, 0],
             "magenta": [0, 0],
             "pink": [0, 0],
-            "white": [0, 0]
+            "white": [0, 0, 0]
         }
         for x, y in cluster:
             h, s, v = image_hsv[x][y]
             for color in colors_hue:
-                if s <= 60:
-                    if v >= 60:
+                if s <= 100:
+                    if v >= 180:
                         colors_dict["white"][0] += 1
-                    else:
+                    elif v >= 80:
                         colors_dict["white"][1] += 1
+                    else:
+                        colors_dict["white"][2] += 1
                     break
                 if h <= colors_hue[color]:
                     if v >= 60:
@@ -237,16 +238,22 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
                         colors_dict["red"][1] += 1
                     break
         for color in colors_dict:
+            if color == "white":
+                white, gray, black = colors_dict[color]
+                if white >= len(cluster) * min_points_color:
+                    colors.append("white")
+                if gray >= len(cluster) * min_points_color:
+                    colors.append("gray")
+                if black >= len(cluster) * min_points_color:
+                    colors.append("black")
+                continue
             bright, dark = colors_dict[color]
 
             if bright >= len(cluster) * min_points_color:
                 colors.append(color)
 
             if dark >= len(cluster) * min_points_color:
-                if color == "white":
-                    colors.append("black")
-                else:
-                    colors.append(f"dark {color}")
+                colors.append(f"dark {color}")
 
         c += len(colors)
 
