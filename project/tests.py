@@ -286,6 +286,6 @@ if __name__ == "__main__":
         "grid_dani.csv",
         "error_dani.csv",
     )'''
-    grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
+    #grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
     main.DISPLAY = False
-    #run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)

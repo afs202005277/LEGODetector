@@ -160,7 +160,7 @@ def clear_clusters(image, clusters, ratio):
 
 def db_scan(image):
     clusters = []
-    ratio = image.shape[0] // 150
+    ratio = image.shape[0] // 75
     # For every pixel in the image
     for i in range(0, image.shape[0], ratio):
         for j in range(0, image.shape[1], ratio):
@@ -420,12 +420,12 @@ def background_removal(image):
     image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2] + 3, 0, 255)
     image = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR)
 
-    image = cv2.medianBlur(image, 11)
+    image = cv2.medianBlur(image, 15)
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
     edges = cv2.Canny(image, 50, 125)
 
-    edges = cv2.dilate(edges, None, iterations=6)
+    edges = cv2.dilate(edges, None, iterations=10)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
