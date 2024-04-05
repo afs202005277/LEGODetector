@@ -403,4 +403,4 @@ def main(image_path):
 
 
 if __name__ == "__main__":
-    main('2.jpg')
+    main('11.jpg')

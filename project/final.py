@@ -2,6 +2,8 @@ import json
 import sys
 import cv2
 import numpy as np
+from scipy import ndimage
+
 from utils import equalize_hist_wrapper
 import math
 
@@ -10,6 +12,7 @@ SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 0.26
 MIN_POINTS_COLOR_BGR = 50
+VALUE = 60
 
 colors_hue = {
     "red": 5,
@@ -23,7 +26,7 @@ colors_hue = {
     "blue": 125,
     "purple": 135,
     "magenta": 155,
-    "pink": 175,
+    "pink": 180,
 }
 
 """
@@ -103,6 +106,7 @@ def merge_clusters(image, clusters, ratio):
                     return clusters
     return clusters
 
+
 """
 Merge colors that are very close to each other based on a treshold.
 
@@ -113,6 +117,8 @@ Args:
 Returns:
     list: List of merged colors.
 """
+
+
 def merge_colors(colors, threshold=SAME_COLOR_THRESHOLD2):
     for i in range(len(colors)):
         for j in range(i + 1, len(colors)):
@@ -226,16 +232,10 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
                         colors_dict["white"][2] += 1
                     break
                 if h <= colors_hue[color]:
-                    if v >= 60:
+                    if v >= VALUE:
                         colors_dict[color][0] += 1
                     else:
                         colors_dict[color][1] += 1
-                    break
-                if color == "pink":
-                    if v >= 60:
-                        colors_dict["red"][0] += 1
-                    else:
-                        colors_dict["red"][1] += 1
                     break
         for color in colors_dict:
             if color == "white":
@@ -278,7 +278,10 @@ Args:
 Returns:
     tuple: A tuple containing the total number of colors detected and the number of distinct colors.
 """
-def color_scan_bgr(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2, threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR_BGR):
+
+
+def color_scan_bgr(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=SAME_COLOR_THRESHOLD2,
+                   threshold3=SAME_COLOR_THRESHOLD3, min_points_color=MIN_POINTS_COLOR_BGR):
     c = 0
     full_colors = []
     for cluster in clusters:
@@ -287,7 +290,7 @@ def color_scan_bgr(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=
             color = image[x][y]
             found = False
             for i in range(len(colors)):
-                    
+
                 if color_dist(color, colors[i]) < threshold1:
                     found = True
                     colors[i][0] = (int(colors[i][0]) + int(color[0])) // 2
@@ -313,6 +316,7 @@ def color_scan_bgr(clusters, image, threshold1=SAME_COLOR_THRESHOLD, threshold2=
 
     return c, max(len(full_colors) - 1, 1)
 
+
 """
 Calculate the Euclidean distance between two colors.
 
@@ -323,9 +327,12 @@ Args:
 Returns:
     float: The Euclidean distance between the two colors.
 """
+
+
 def color_dist(color1, color2):
     return math.sqrt((int(color1[0]) - int(color2[0])) ** 2 + (int(color1[1]) - int(color2[1])) ** 2 + (
             int(color1[2]) - int(color2[2])) ** 2)
+
 
 """
 Count the number of points in a cluster with similar color to a given color.
@@ -339,12 +346,15 @@ Args:
 Returns:
     int: The number of points with similar color in the cluster.
 """
+
+
 def points_with_color(color, cluster, image, threshold=SAME_COLOR_THRESHOLD2):
     c = 0
     for point in cluster:
         if color_dist(color, image[point[0]][point[1]]) < threshold:
             c += 1
     return c
+
 
 """
 Clear similar colors in the given list of colors.
@@ -356,12 +366,15 @@ Args:
 Returns:
     list: List of cleared colors.
 """
+
+
 def clear_colors(colors, threshold=SAME_COLOR_THRESHOLD2):
     temp = -1
     while temp != len(colors):
         temp = len(colors)
         colors = merge_colors(colors, threshold)
     return colors
+
 
 """
 Perform segmentation on the input image using GrabCut with bounding rectangles specified by contours.
@@ -427,6 +440,7 @@ def background_removal(image):
     image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2] + 3, 0, 255)
     image = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR)
 
+
     image = cv2.medianBlur(image, 15)
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
@@ -489,6 +503,11 @@ def main(image_path):
 
     # 5. Scan clusters and determine their dominant colors (Best to find colors)
     _, num_colors = color_scan(clusters, result)
+
+    #print(num_colors)
+    #cv2.imshow('result', result)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
     return num_blocks, num_colors, bbs
 

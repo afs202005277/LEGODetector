@@ -99,6 +99,7 @@ def run_tests(images_folder, values_folder, module):
 
     blocks_dict = dict()
     colors_dict = dict()
+    # blocks_dict, colors_dict = check_values(test_values, count_blocks_functions, count_colors_functions)
 
     with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
         futures = []
@@ -120,6 +121,9 @@ def run_tests(images_folder, values_folder, module):
     blocks_df.to_csv("blocks.csv", index=False)
     colors_df.to_csv("colors.csv", index=False)
 
+    lowest_error_colors = None
+    lowest_error_blocks = None
+
     if TEST_COUNT_BLOCKS:
         results_blocks = (
             blocks_df.groupby("function_name")["error"].mean()
@@ -128,6 +132,7 @@ def run_tests(images_folder, values_folder, module):
         blocks_df.to_csv('blocks_df.csv', index=False)
         best_function = results_blocks.index[0]
         lowest_error = results_blocks.iloc[0]
+        lowest_error_blocks = lowest_error
         print("BLOCKS:")
         print(
             f"The best function was {best_function} with an error of {round(lowest_error, 2)}\n"
@@ -141,12 +146,14 @@ def run_tests(images_folder, values_folder, module):
         colors_df.to_csv('colors_df.csv', index=False)
         best_function = results_colors.index[0]
         lowest_error = results_colors.iloc[0]
+        lowest_error_colors = lowest_error
         print("COLORS:")
         print(
             f"The best function was {best_function} with an error of {round(lowest_error, 2)}"
         )
 
     print()
+    return lowest_error_blocks, lowest_error_colors
 
 
 def prepare_image(image_path):
@@ -288,4 +295,10 @@ if __name__ == "__main__":
     )'''
     #grid("samples-task1/samples", "samples-task1/answers", process_combination_gpe, 'list_gpe.joblib', 'grid.csv', 'error.csv')
     main.DISPLAY = False
-    run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+
+    l_blocks, l_colors = run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+
+    #for value in [90, 175, 200]:
+    #    final.VALUE = value
+    #    l_blocks, l_colors = run_tests("samples-task1/samples", "samples-task1/answers", TEST_TARGET)
+    #    print(f"Value: {value}, blocks: {l_blocks}, colors: {l_colors}")
