@@ -229,11 +229,11 @@ def store_results(data, grid_name, error_name):
 
 def get_parameters_gpe_blocks():
     parameters = dict()
-    parameters['minpoints'] = [0.3, 0.35, 0.4, 0.45]
-    parameters['red'] = [2, 3, 4, 5, 6, 7, 8]
-    parameters['orange'] = [19, 20, 21, 22, 23]
-    parameters['turquoise'] = [85, 86, 87, 88, 89]
-    parameters['pink'] = [163, 164, 165, 166, 167]
+    parameters['minpoints'] = [0.25, 0.26, 0.27]
+    parameters['lime'] = [41, 42, 45, 47, 49]
+    parameters['orange'] = [18, 20, 21, 23]
+    parameters['turquoise'] = [80, 83, 87, 90, 95]
+    parameters['magenta'] = [140, 145, 150, 155, 160]
 
     param_combinations = []
     for combo in list(itertools.product(*parameters.values())):
