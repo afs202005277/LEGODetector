@@ -9,7 +9,7 @@ def evaluate_function(image, params):
     original_image = image.copy()
 
     without_background, contours = final.background_removal(image, iterations=6)
-    without_background, _ = final.image_segmentation(without_background, contours, original_image)
+    without_background, _ = final.image_segmentation(without_background, contours, original_image, its=params['its'])
     clusters = final.db_scan(without_background)
     colors_hue = {
     "red": 5,
@@ -25,5 +25,5 @@ def evaluate_function(image, params):
     "magenta": params['magenta'],
     "pink": 180,
 }
-    pieces, colors = final.color_scan(clusters, without_background, params['minpoints'], colors_hue)
+    pieces, colors = final.color_scan(clusters, without_background, params['minpoints'], colors_hue, blur=params['dani'])
     return colors

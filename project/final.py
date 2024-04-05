@@ -198,8 +198,9 @@ def db_scan(image):
     """
 
 
-def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=colors_hue):
-    # image = cv2.GaussianBlur(image, (41, 41), 0)
+def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=colors_hue, blur=0):
+    if blur != 0:
+        image = cv2.medianBlur(image, blur)
 
     c = 0
     full_colors = set()
@@ -388,7 +389,7 @@ Returns:
 """
 
 
-def image_segmentation(image, contours, original_image):
+def image_segmentation(image, contours, original_image, its=8):
     bbs = [cv2.boundingRect(contour) for contour in contours]
     combination = (15, 160, 100)
     masks = []
@@ -399,7 +400,7 @@ def image_segmentation(image, contours, original_image):
     for bb_idx in range(len(bbs)):
         bb = bbs[bb_idx]
         cv2.setRNGSeed(0)
-        (mask, bg_model, fgModel) = cv2.grabCut(original_image, mask, bb, bg_model, fg_model, 8,
+        (mask, bg_model, fgModel) = cv2.grabCut(original_image, mask, bb, bg_model, fg_model, its,
                                                 cv2.GC_INIT_WITH_RECT)
 
         output_mask = np.where((mask == cv2.GC_BGD) | (mask == cv2.GC_PR_BGD), 0, 1)
