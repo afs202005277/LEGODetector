@@ -2,7 +2,6 @@ import json
 import sys
 import cv2
 import numpy as np
-from scipy import ndimage
 
 from utils import equalize_hist_wrapper
 import math
@@ -504,6 +503,8 @@ def main(image_path):
     # 3. Image preprocessing: Background removal
     result, contours = background_removal(image, iterations=6)
     result, bbs = image_segmentation(result, contours, original_image)
+
+    clusters = db_scan(result)
 
     # 5. Scan clusters and determine their dominant colors (Best to find colors)
     _, num_colors = color_scan(clusters, result)
