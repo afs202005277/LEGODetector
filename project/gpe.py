@@ -11,6 +11,7 @@ SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 0.35
 
+
 colors_hue = {
     "red": 5,
     "orange": 21,
@@ -371,20 +372,20 @@ def main(image_path):
 
     image_hsv = cv2.cvtColor(result, cv2.COLOR_BGR2HSV)
 
-    '''def paint_coordinates(event, x, y, flag, params):
+    def paint_coordinates(event, x, y, flag, params):
         if event == cv2.EVENT_LBUTTONDOWN:
             print(f'Coordinates: ({x}, {y})')
-            print(f'Hue: {image_hsv[y][x]}')'''
+            print(f'Hue: {image_hsv[y][x]}')
 
-    # cv2.namedWindow('image_window')
-    # cv2.setMouseCallback('image_window', paint_coordinates)
+    cv2.namedWindow('image_window')
+    cv2.setMouseCallback('image_window', paint_coordinates)
 
-    # while True:
-    #    cv2.imshow("image_window", result)
-    #    if cv2.waitKey(1) == ord('q'):
-    #        break
+    while True:
+       cv2.imshow("image_window", result)
+       if cv2.waitKey(1) == ord('q'):
+           break
 
-    # cv2.destroyWindow("image_window")
+    cv2.destroyWindow("image_window")
 
     # grab cut for each rectangle´
 
@@ -402,4 +403,4 @@ def main(image_path):
 
 
 if __name__ == "__main__":
-    main('test.jpg')
+    main('2.jpg')
