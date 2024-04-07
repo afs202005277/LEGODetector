@@ -521,18 +521,15 @@ def main(image_path):
     # 5. Scan clusters and determine their dominant colors (Best to find blocks)
     num_blocks, _ = color_scan_bgr(clusters, result)
 
-    # 3. Image preprocessing: Background removal
+    # 6. Image preprocessing: Background removal
     result, contours = background_removal(image, iterations=6)
     result, bbs = image_segmentation(result, contours, original_image)
 
+    # 7. Perform DBSCAN on the image
     clusters = db_scan(result)
 
-    # 5. Scan clusters and determine their dominant colors (Best to find colors)
+    # 8. Scan clusters and determine their dominant colors (Best to find colors)
     _, num_colors = color_scan(clusters, result)
-
-    # cv2.imshow('result', result)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
 
     return num_blocks, num_colors, bbs
 
