@@ -219,10 +219,7 @@ def db_scan(image):
     """
 
 
-def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=COLORS_HUE, blur=0):
-    if blur != 0:
-        image = cv2.medianBlur(image, blur)
-
+def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=COLORS_HUE):
     c = 0
     full_colors = set()
     image_hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
