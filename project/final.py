@@ -2,8 +2,6 @@ import json
 import sys
 import cv2
 import numpy as np
-
-from utils import equalize_hist_wrapper
 import math
 
 SAME_COLOR_THRESHOLD = 110
@@ -11,9 +9,8 @@ SAME_COLOR_THRESHOLD2 = 40
 SAME_COLOR_THRESHOLD3 = 50
 MIN_POINTS_COLOR = 0.26
 MIN_POINTS_COLOR_BGR = 50
-VALUE = 60
 
-colors_hue = {
+COLORS_HUE = {
     "red": 5,
     "orange": 19,
     "yellow": 35,
@@ -27,6 +24,37 @@ colors_hue = {
     "magenta": 155,
     "pink": 180,
 }
+
+"""
+    Adjusts the contrast of an image.
+
+    Args:
+    - image (numpy.ndarray): Input image in BGR color space.
+    - d (int): Diameter of each pixel neighborhood for bilateral filtering.
+    - s_color (float): Filter sigma in the color space.
+    - s_space (float): Filter sigma in the coordinate space.
+
+    Returns:
+    - numpy.ndarray: Image with adjusted contrast.
+
+    If the input image has three channels (BGR), the function converts it to HSV color space, 
+    performs histogram equalization on the value channel (V) and inverts it, applies bilateral filtering on the hue channel (H),
+    and then converts it back to the BGR color space. 
+    If the input image has a single channel, it directly applies histogram equalization on it.
+
+    """
+
+
+def adjust_image_contrast(image, d, s_color, s_space):
+    if image.shape[2] == 3:
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        h, s, v = cv2.split(hsv)
+        v = 255 - cv2.equalizeHist(v)
+        h = cv2.bilateralFilter(h, d, s_color, s_space)
+        return cv2.cvtColor(cv2.merge((h, s, v)), cv2.COLOR_HSV2BGR)
+    else:
+        return cv2.equalizeHist(image)
+
 
 """
 Check if a pixel represents the color black.
@@ -70,12 +98,7 @@ def same_cluster(image, i, j, cluster, ratio=1):
         (i + ratio, j + ratio),
     ]
     for neighbor in neighbors:
-        if (
-                neighbor[0] >= 0
-                and neighbor[0] < image.shape[0]
-                and neighbor[1] >= 0
-                and neighbor[1] < image.shape[1]
-        ):
+        if 0 <= neighbor[0] < image.shape[0] and 0 <= neighbor[1] < image.shape[1]:
             if neighbor in cluster:
                 return True
     return False
@@ -152,7 +175,7 @@ def clear_clusters(image, clusters, ratio):
 
 
 """
-    Perform Density-Based Spatial Clustering of Applications with Noise (DBSCAN) on the image.
+    Perform our version of Density-Based Spatial Clustering of Applications with Noise (DBSCAN) on the image.
 
     Args:
         image (numpy.ndarray): The input image.
@@ -165,10 +188,8 @@ def clear_clusters(image, clusters, ratio):
 def db_scan(image):
     clusters = []
     ratio = image.shape[0] // 75
-    # For every pixel in the image
     for i in range(0, image.shape[0], ratio):
         for j in range(0, image.shape[1], ratio):
-            # If the pixel is not black
             if not is_black(image[i][j]):
                 found = False
                 for cluster in clusters:
@@ -198,7 +219,7 @@ def db_scan(image):
     """
 
 
-def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=colors_hue, blur=0):
+def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=COLORS_HUE, blur=0):
     if blur != 0:
         image = cv2.medianBlur(image, blur)
 
@@ -234,7 +255,7 @@ def color_scan(clusters, image, min_points_color=MIN_POINTS_COLOR, colors_hue=co
                         colors_dict["white"][2] += 1
                     break
                 if h <= colors_hue[color]:
-                    if v >= VALUE:
+                    if v >= 60:
                         colors_dict[color][0] += 1
                     else:
                         colors_dict[color][1] += 1
@@ -393,7 +414,7 @@ def image_segmentation(image, contours, original_image, its=8):
     bbs = [cv2.boundingRect(contour) for contour in contours]
     combination = (15, 160, 100)
     masks = []
-    original_image = equalize_hist_wrapper(original_image, *combination)
+    original_image = adjust_image_contrast(original_image, *combination)
     mask = np.zeros(original_image.shape[:2], np.uint8)
     bg_model = np.zeros((1, 65), np.float64)
     fg_model = np.zeros((1, 65), np.float64)
@@ -440,7 +461,6 @@ def background_removal(image, iterations=10):
     image_hsv[:, :, 2] = np.clip(image_hsv[:, :, 2] + 3, 0, 255)
     image = cv2.cvtColor(image_hsv, cv2.COLOR_HSV2BGR)
 
-
     image = cv2.medianBlur(image, 15)
     image = cv2.GaussianBlur(image, (3, 3), sigmaX=0)
 
@@ -474,7 +494,6 @@ Returns:
 
 def resize_image(image, height=800):
     ratio = image.shape[1] / image.shape[0]
-    height = 800
     width = int(height * ratio)
 
     dim = (width, height)
@@ -493,7 +512,8 @@ def main(image_path):
 
     # 3. Image preprocessing: Background removal
     result, contours = background_removal(image)
-    result, bbs = image_segmentation(result, contours, original_image)
+
+    result, _ = image_segmentation(result, contours, original_image)
 
     # 4. Perform DBSCAN on the image
     clusters = db_scan(result)
@@ -510,10 +530,9 @@ def main(image_path):
     # 5. Scan clusters and determine their dominant colors (Best to find colors)
     _, num_colors = color_scan(clusters, result)
 
-    #print(num_colors)
-    #cv2.imshow('result', result)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    # cv2.imshow('result', result)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()
 
     return num_blocks, num_colors, bbs
 
