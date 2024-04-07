@@ -554,7 +554,6 @@ def process_images(input_file, output_file):
     results = []
 
     for image_file in data["image_files"]:
-        print(image_file)
         num_blocks, num_colors, bounding_boxes = main(image_file)
         bounding_boxes = [{"xmin": x, "ymin": y, "xmax": x + w, "ymax": y + h} for (x, y, w, h) in bounding_boxes]
 

@@ -1,63 +1,157 @@
 {
   "results": [
     {
+      "file_name": "1.jpg",
+      "num_colors": 1,
+      "num_detections": 1,
+      "detected_objects": [
+        {
+          "xmin": 305,
+          "ymin": 410,
+          "xmax": 378,
+          "ymax": 488
+        }
+      ]
+    },
+    {
       "file_name": "2.jpg",
-      "num_colors": 8,
+      "num_colors": 7,
       "num_detections": 9,
       "detected_objects": [
         {
-          "xmin": 368,
-          "ymin": 499,
-          "xmax": 555,
-          "ymax": 698
+          "xmin": 372,
+          "ymin": 503,
+          "xmax": 551,
+          "ymax": 694
         },
         {
-          "xmin": 747,
-          "ymin": 489,
-          "xmax": 898,
-          "ymax": 608
+          "xmin": 751,
+          "ymin": 493,
+          "xmax": 894,
+          "ymax": 604
         },
         {
-          "xmin": 859,
-          "ymin": 341,
-          "xmax": 970,
-          "ymax": 453
+          "xmin": 863,
+          "ymin": 345,
+          "xmax": 966,
+          "ymax": 449
         },
         {
-          "xmin": 277,
-          "ymin": 289,
-          "xmax": 412,
+          "xmin": 281,
+          "ymin": 293,
+          "xmax": 408,
+          "ymax": 480
+        },
+        {
+          "xmin": 498,
+          "ymin": 220,
+          "xmax": 609,
+          "ymax": 333
+        },
+        {
+          "xmin": 280,
+          "ymin": 165,
+          "xmax": 382,
+          "ymax": 256
+        },
+        {
+          "xmin": 618,
+          "ymin": 84,
+          "xmax": 729,
+          "ymax": 197
+        },
+        {
+          "xmin": 491,
+          "ymin": 30,
+          "xmax": 611,
+          "ymax": 114
+        },
+        {
+          "xmin": 957,
+          "ymin": 0,
+          "xmax": 1066,
+          "ymax": 67
+        }
+      ]
+    },
+    {
+      "file_name": "3.jpg",
+      "num_colors": 4,
+      "num_detections": 4,
+      "detected_objects": [
+        {
+          "xmin": 447,
+          "ymin": 314,
+          "xmax": 600,
+          "ymax": 461
+        },
+        {
+          "xmin": 89,
+          "ymin": 278,
+          "xmax": 218,
+          "ymax": 416
+        },
+        {
+          "xmin": 333,
+          "ymin": 173,
+          "xmax": 434,
+          "ymax": 295
+        },
+        {
+          "xmin": 181,
+          "ymin": 44,
+          "xmax": 288,
+          "ymax": 143
+        }
+      ]
+    },
+    {
+      "file_name": "4.jpg",
+      "num_colors": 7,
+      "num_detections": 5,
+      "detected_objects": [
+        {
+          "xmin": 282,
+          "ymin": 576,
+          "xmax": 426,
+          "ymax": 728
+        },
+        {
+          "xmin": 372,
+          "ymin": 369,
+          "xmax": 479,
           "ymax": 484
         },
         {
-          "xmin": 494,
-          "ymin": 216,
-          "xmax": 613,
-          "ymax": 337
+          "xmin": 91,
+          "ymin": 344,
+          "xmax": 210,
+          "ymax": 419
         },
         {
-          "xmin": 276,
-          "ymin": 161,
-          "xmax": 386,
-          "ymax": 260
+          "xmin": 272,
+          "ymin": 150,
+          "xmax": 355,
+          "ymax": 319
         },
         {
-          "xmin": 614,
-          "ymin": 80,
-          "xmax": 733,
-          "ymax": 201
-        },
-        {
-          "xmin": 487,
-          "ymin": 26,
-          "xmax": 615,
-          "ymax": 118
-        },
-        {
-          "xmin": 953,
+          "xmin": 159,
           "ymin": 0,
-          "xmax": 1066,
-          "ymax": 71
+          "xmax": 242,
+          "ymax": 125
+        }
+      ]
+    },
+    {
+      "file_name": "9.jpg",
+      "num_colors": 1,
+      "num_detections": 1,
+      "detected_objects": [
+        {
+          "xmin": 291,
+          "ymin": 219,
+          "xmax": 360,
+          "ymax": 587
         }
       ]
     }
