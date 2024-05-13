@@ -1,0 +1,3 @@
+https://www.kaggle.com/datasets/dreamfactor/biggest-lego-dataset-600-parts
+https://www.kaggle.com/datasets/marwin1665/synthetic-lego-images-images22
+https://www.kaggle.com/datasets/mantasgr/synthetic-lego-brick-dataset-for-object-detection

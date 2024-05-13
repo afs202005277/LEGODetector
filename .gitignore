@@ -162,7 +162,13 @@ cython_debug/
 
 # Ignore DataSpell IDE files
 .idea/
-
+project/archive(1)/
+project/backgrounds/
+project/drive_dataset (copy)/
+project/drive_dataset/
+project/generated_data/
+project/individual_pieces/
+project/original_dataset/
 # Ignore Python notebooks checkpoints
 *.ipynb_checkpoints/
 
