@@ -1,5 +1,7 @@
 import copy
+import math
 import random
+import shutil
 
 import cv2
 import numpy as np
@@ -206,7 +208,8 @@ def place_images_in_canvas(image_folder, canvas_size, num_pieces):
             image = cv2.imread(os.path.join(image_folder, image_file))
 
             if image.shape[1] > canvas_size[0] or image.shape[0] > canvas_size[1]:
-                continue
+                deadlock = True
+                break
 
             its = 0
             while True:
@@ -252,12 +255,12 @@ def add_background(image):
 
 def enhance_image(image):
     # Apply Gaussian blur to reduce sharpness
-    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
+    # image = cv2.GaussianBlur(image, (5, 5), 0)
 
     # Adjust brightness and contrast
     alpha = 1.0  # Contrast control (1.0-3.0)
     beta = 10  # Brightness control (0-100)
-    adjusted_image = cv2.convertScaleAbs(blurred_image, alpha=alpha, beta=beta)
+    adjusted_image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
 
     return adjusted_image
 
@@ -438,7 +441,30 @@ def main():
             print(f"Generated {images_needed} images with {num_pieces} pieces each.")
 
 
+def chunk_folder(folder_path, num_chunks):
+    files = os.listdir(folder_path)
+    num_files = len(files)
+
+    # Calculate approximate number of files per chunk
+    files_per_chunk = math.ceil(num_files / num_chunks)
+
+    # Create chunks
+    for i in range(num_chunks):
+        chunk_dir = os.path.join('chunks', f"chunk_{i + 1}")
+        os.makedirs(chunk_dir, exist_ok=True)
+
+        # Determine files for current chunk
+        start_index = i * files_per_chunk
+        end_index = min((i + 1) * files_per_chunk, num_files)
+        chunk_files = files[start_index:end_index]
+
+        # Copy files to chunk folder
+        for file_name in chunk_files:
+            file_path = os.path.join(folder_path, file_name)
+            shutil.copy(file_path, chunk_dir)
+
+
 if __name__ == '__main__':
     # post_process_pieces('individual_pieces')
     # blacklist_pieces('individual_pieces')
-    main()
+    chunk_folder('generated_dataset', 7)
