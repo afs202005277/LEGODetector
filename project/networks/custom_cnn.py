@@ -24,18 +24,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 random.seed(42)
 
-from google.colab import drive
-drive.mount('/content/drive')
+base_folder = "../"
 
-!cp /content/drive/Shareddrives/VC/datasets.zip /content
-!mkdir -p /content/data
-!unzip -q /content/datasets.zip -d /content/data
-
-base_folder = "/content/data"
-
-models_folder = "/content/drive/Shareddrives/VC" + "/models/"
-plot_data = "/content/drive/Shareddrives/VC" + "/plot_data/"
-image_paths_file = "/content/drive/Shareddrives/VC" + "/image_paths.txt"
+models_folder = base_folder + "/models/"
+plot_data = base_folder + "/plot_data/"
+image_paths_file = base_folder + "/image_paths.txt"
 
 if not os.path.exists(models_folder):
     os.makedirs(models_folder)
@@ -122,7 +115,7 @@ class LegoDataset(Dataset):
         return image, label
 
 batch_size = 64
-num_workers = 0
+num_workers = 2
 image_size = (520, 390)
 train_size = 0.7
 validation_size = 0.2
@@ -173,17 +166,23 @@ class CustomCNN(nn.Module):
         self.conv4 = nn.Conv2d(128, 256, kernel_size=3)
         self.conv5 = nn.Conv2d(256, 64, kernel_size=1)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.dropout = nn.Dropout(p=0.2)
         self.fc1 = nn.Linear(64*15*11, 1)
 
     def forward(self, x):
         x = self.pool(torch.relu(self.conv1(x)))
+        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv2(x)))
+        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv3(x)))
+        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv4(x)))
+        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv5(x)))
+        x = self.dropout(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc1(x)
-        return x.squeeze(1)
+        return x.squeeze(1).round()
 
 def summarize():
   model = CustomCNN()
@@ -260,8 +259,8 @@ best_model_file = f'{models_folder}best_model.pth'
 print("Continue previous training or start new one?")
 print("1: Continue")
 print("2: Start new one")
-choice = input()
-
+#choice = input()
+choice = '2'
 model = CustomCNN()
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -291,6 +290,7 @@ elif choice == '2':
     os.remove(val_history_file)
   if os.path.exists(latest_model_file):
     os.remove(latest_model_file)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.6, min_lr=1e-5, patience=10)
 
 print("Start training...")
 for t in range(epoch, num_epochs):
@@ -328,7 +328,10 @@ for t in range(epoch, num_epochs):
     save_dict_to_file(train_history, train_history_file)
     save_dict_to_file(val_history, val_history_file)
 
-    plotTrainingHistory(train_history, val_history)
+    scheduler.step(val_loss)
+    print(f"Learning rate: {optimizer.param_groups[0]['lr']}")
+
+plotTrainingHistory(train_history, val_history)
 
 print("Finished")
 
