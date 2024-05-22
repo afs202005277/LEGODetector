@@ -114,7 +114,7 @@ class LegoDataset(Dataset):
 
         return image, label
 
-batch_size = 64
+batch_size = 32
 num_workers = 2
 image_size = (520, 390)
 train_size = 0.7
@@ -164,25 +164,21 @@ class CustomCNN(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3)
         self.conv4 = nn.Conv2d(128, 256, kernel_size=3)
-        self.conv5 = nn.Conv2d(256, 64, kernel_size=1)
+        self.conv6 = nn.Conv2d(256, 512, kernel_size=3)
+        self.conv5 = nn.Conv2d(512, 128, kernel_size=1)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.dropout = nn.Dropout(p=0.2)
-        self.fc1 = nn.Linear(64*15*11, 1)
+        self.fc1 = nn.Linear(128*7*5, 1)
 
     def forward(self, x):
         x = self.pool(torch.relu(self.conv1(x)))
-        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv2(x)))
-        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv3(x)))
-        x = self.dropout(x)
         x = self.pool(torch.relu(self.conv4(x)))
-        x = self.dropout(x)
+        x = self.pool(torch.relu(self.conv6(x)))
         x = self.pool(torch.relu(self.conv5(x)))
-        x = self.dropout(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc1(x)
-        return x.squeeze(1).round()
+        return x.squeeze(1)
 
 def summarize():
   model = CustomCNN()
@@ -192,7 +188,7 @@ def summarize():
   # Summarize the model
   summary(model, input_size=(3, *image_size))
 
-# summarize()
+summarize()
 
 """# **Train the model:**"""
 
@@ -260,16 +256,16 @@ print("Continue previous training or start new one?")
 print("1: Continue")
 print("2: Start new one")
 #choice = input()
-choice = '2'
+choice='2'
 model = CustomCNN()
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 30
+num_epochs = 100
 epoch=0
 train_history = {'loss': [], 'accuracy': []}
 val_history = {'loss': [], 'accuracy': []}
 best_val_loss = float('inf')
-switch_treshold = 2
+switch_treshold = 1
 
 if choice == '1':
   print("Resuming training...")
@@ -290,7 +286,7 @@ elif choice == '2':
     os.remove(val_history_file)
   if os.path.exists(latest_model_file):
     os.remove(latest_model_file)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.6, min_lr=1e-5, patience=10)
+#scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.6, min_lr=1e-5, patience=5)
 
 print("Start training...")
 for t in range(epoch, num_epochs):
@@ -328,8 +324,8 @@ for t in range(epoch, num_epochs):
     save_dict_to_file(train_history, train_history_file)
     save_dict_to_file(val_history, val_history_file)
 
-    scheduler.step(val_loss)
-    print(f"Learning rate: {optimizer.param_groups[0]['lr']}")
+    #scheduler.step(val_loss)
+    #print(f"Learning rate: {optimizer.param_groups[0]['lr']}")
 
 plotTrainingHistory(train_history, val_history)
 
