@@ -183,3 +183,4 @@ venv/
 *.csv
 project/samples-task1/samples
 project/generated_dataset/*
+project/dataset/*

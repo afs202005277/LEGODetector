@@ -104,7 +104,7 @@ transform = resnet_transform
 
 """# **Dataset:**"""
 
-batch_size = 64
+batch_size = 32
 num_workers = 2
 train_size = 0.8
 validation_size = 0.1
@@ -163,37 +163,52 @@ import torchvision.models as models
 """## ResNet50"""
 
 ## Load ResNet model from torchvision (with pretrained=True)
-resnet = models.resnet50(pretrained=True)
-
+#resnet = models.resnet50(pretrained=True)
+#
 ## Disable Gradients
-for param in resnet.parameters():
+#for param in resnet.parameters():
+#    param.requires_grad = False
+#
+## Change the number of neurons in the last layer to the number of classes of the CIFAR10 dataset
+#num_ftrs = resnet.fc.in_features
+#resnet.fc = nn.Linear(num_ftrs, 1)
+
+"""## VGG16"""
+
+#from torchvision.models import VGG16_Weights
+#
+#vgg16 = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
+#
+#for param in vgg16.parameters():
+#    param.requires_grad = False
+#
+#num_ftrs = vgg16.classifier[6].in_features
+#vgg16.classifier[6] = nn.Linear(num_ftrs, 1)
+#
+#for param in vgg16.classifier[6].parameters():
+#    param.requires_grad = True
+
+"""## DenseNet"""
+
+from torchvision.models import DenseNet201_Weights
+
+densenet = models.densenet201(weights=DenseNet201_Weights.IMAGENET1K_V1)
+
+for param in densenet.parameters():
     param.requires_grad = False
 
-## Change the number of neurons in the last layer to the number of classes of the CIFAR10 dataset
-num_ftrs = resnet.fc.in_features
-resnet.fc = nn.Linear(num_ftrs, 1)
+num_ftrs = densenet.classifier.in_features
+densenet.classifier = nn.Linear(num_ftrs, 1)
 
-"""# VGG16"""
+for param in densenet.classifier.parameters():
+    param.requires_grad = True
 
-# from torchvision.models import VGG16_Weights
+model = densenet
+best_model_file = models_folder + "densenet_0001_un_best_model.pth"
+latest_model_file = models_folder + "densenet_0001_un_latest_model.pth"
 
-# vgg16 = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
-
-# for param in vgg16.parameters():
-#     param.requires_grad = False
-
-# num_ftrs = vgg16.classifier[6].in_features
-# vgg16.classifier[6] = nn.Linear(num_ftrs, 1)
-
-# for param in vgg16.classifier[6].parameters():
-#     param.requires_grad = True
-
-model = resnet
-best_model_file = models_folder + "resnet_0001_un_best_model.pth"
-latest_model_file = models_folder + "resnet_0001_un_latest_model.pth"
-
-train_history_file = plot_data + "resnet_0001_un_train_history.json"
-val_history_file = plot_data + "resnet_0001_un_val_history.json"
+train_history_file = plot_data + "densenet_0001_un_train_history.json"
+val_history_file = plot_data + "densenet_0001_un_val_history.json"
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
@@ -257,102 +272,84 @@ def epoch_iter(dataloader, model, loss_fn, optimizer=None, is_train=True):
     return total_loss / num_batches, mean_absolute_error(labels, preds), labels, preds
 
 def train(model, num_epochs, train_dataloader, validation_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze = -1, train_values = None, val_values = None, resume = False):
-  train_history = None
-  val_history = None
-  best_val_loss = None
-  if resume:
-    train_history = train_values
-    val_history = val_values
-    best_val_loss = min(val_history['loss'])
-  else:
-    train_history = {'loss': [], 'accuracy': []}
-    val_history = {'loss': [], 'accuracy': []}
-    best_val_loss = float('inf')
+    train_history = None
+    val_history = None
+    best_val_loss = None
+    init_epochs = 0
 
-  print("Start training...")
+    if resume:
+        train_history = train_values
+        val_history = val_values
+        best_val_loss = min(val_history['loss'])
+        init_epochs = len(val_history['loss']) - 1
+    else:
+        train_history = {'loss': [], 'accuracy': []}
+        val_history = {'loss': [], 'accuracy': []}
+        best_val_loss = float('inf')
 
-  for t in range(num_epochs):
-      print(f"\nEpoch {t+1}")
 
-      if t + 1 == num_epoch_to_unfreeze:
-        for param in model.parameters():
-          param.requires_grad = True
+    print("Start training...")
 
-      # Train model for one iteration on training data
-      train_loss, train_acc, _a, _b = epoch_iter(train_dataloader, model, loss, optimizer)
-      print(f"Train loss: {train_loss:.3f} \t Train acc: {train_acc:.3f}")
+    for t in range(init_epochs, num_epochs):
+        print(f"\nEpoch {t+1}")
 
-      # Evaluate model on validation data
-      val_loss, val_acc, _a, _b = epoch_iter(valid_dataloader, model, loss, None, is_train=False)
-      print(f"Val loss: {val_loss:.3f} \t Val acc: {val_acc:.3f}")
+        if t + 1 == num_epochs_to_unfreeze:
+            for param in model.parameters():
+              param.requires_grad = True
+            print("Switched to MSE")
+            loss_fn = nn.MSELoss()
 
-      # Save model when validation loss improves
-      if val_loss < best_val_loss:
-          best_val_loss = val_loss
-          save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': t}
-          torch.save(save_dict, best_model_file)
+        # Train model for one iteration on training data
+        train_loss, train_acc, _a, _b = epoch_iter(train_dataloader, model, loss, optimizer)
+        print(f"Train loss: {train_loss:.3f} \t Train acc: {train_acc:.3f}")
 
-      # Save latest model
-      save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': t}
-      torch.save(save_dict, latest_model_file)
+        # Evaluate model on validation data
+        val_loss, val_acc, _a, _b = epoch_iter(valid_dataloader, model, loss, None, is_train=False)
+        print(f"Val loss: {val_loss:.3f} \t Val acc: {val_acc:.3f}")
 
-      # Save training history for plotting purposes
-      train_history["loss"].append(train_loss)
-      train_history["accuracy"].append(train_acc)
+        if val_loss < 1:
+          print("Switched to MAE: " + str(val_loss))
+          loss_fn = nn.L1Loss()
 
-      val_history["loss"].append(val_loss)
-      val_history["accuracy"].append(val_acc)
+        # Save model when validation loss improves
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': t}
+            torch.save(save_dict, best_model_file)
 
-      save_dict_to_file(train_history, train_history_file)
-      save_dict_to_file(val_history, val_history_file)
-
-  print("Finished")
-
-num_epochs = 200
-num_epoch_to_unfreeze = 20
-
-train_history = {'loss': [], 'accuracy': []}
-val_history = {'loss': [], 'accuracy': []}
-best_val_loss = float('inf')
-
-print("Start training...")
-for t in range(num_epochs):
-    print(f"\nEpoch {t+1}")
-
-    if t + 1 == num_epoch_to_unfreeze:
-      for param in model.parameters():
-        param.requires_grad = True
-
-    # Train model for one iteration on training data
-    train_loss, train_acc, _a, _b = epoch_iter(train_dataloader, model, loss, optimizer)
-    print(f"Train loss: {train_loss:.3f} \t Train acc: {train_acc:.3f}")
-
-    # Evaluate model on validation data
-    val_loss, val_acc, _a, _b = epoch_iter(valid_dataloader, model, loss, None, is_train=False)
-    print(f"Val loss: {val_loss:.3f} \t Val acc: {val_acc:.3f}")
-
-    # Save model when validation loss improves
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
+        # Save latest model
         save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': t}
-        torch.save(save_dict, best_model_file)
+        torch.save(save_dict, latest_model_file)
 
-    # Save latest model
-    save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': t}
-    torch.save(save_dict, latest_model_file)
+        # Save training history for plotting purposes
+        train_history["loss"].append(train_loss)
+        train_history["accuracy"].append(train_acc)
 
-    # Save training history for plotting purposes
-    train_history["loss"].append(train_loss)
-    train_history["accuracy"].append(train_acc)
+        val_history["loss"].append(val_loss)
+        val_history["accuracy"].append(val_acc)
 
-    val_history["loss"].append(val_loss)
-    val_history["accuracy"].append(val_acc)
+        save_dict_to_file(train_history, train_history_file)
+        save_dict_to_file(val_history, val_history_file)
 
-    save_dict_to_file(train_history, train_history_file)
-    save_dict_to_file(val_history, val_history_file)
+    print("Finished")
+    return train_history, val_history
 
-print("Finished")
+num_epochs = 50
+num_epochs_to_unfreeze = 20
 
+resume = False
+train_values = None
+val_values = None
+
+#train_values = get_saved_dict('/content/drive/Shareddrives/VC/plot_data/pretrained/densenet_0001_un_train_history.json')
+#val_values = get_saved_dict('/content/drive/Shareddrives/VC/plot_data/pretrained/densenet_0001_un_val_history.json')
+#
+#checkpoint = torch.load('/content/drive/Shareddrives/VC/models/pretrained/densenet_0001_un_latest_model.pth')
+#model.load_state_dict(checkpoint['model'])
+
+train_history, val_history = train(model, num_epochs, train_dataloader, valid_dataloader, loss, optimizer, num_epochs_to_unfreeze, train_values, val_values, resume)
+
+plotTrainingHistory(train_history, val_history)
 
 
 """# Test the model"""
@@ -368,4 +365,3 @@ print(f'\nTest Loss: {test_loss:.3f} \nTest Accuracy: {test_acc:.3f}')
 accuracy = accuracy_score(labels, preds)
 print(f"Accuracy: {accuracy:.2f}")
 
-plotTrainingHistory(train_history, val_history)
