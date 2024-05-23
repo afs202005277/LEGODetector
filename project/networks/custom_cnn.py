@@ -24,6 +24,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 random.seed(42)
 
+
 base_folder = "../"
 
 models_folder = base_folder + "/models/"
@@ -42,11 +43,15 @@ def draw_bar_plot(labels):
     unique_labels = list(set(labels))
     counts = [labels.count(label) for label in unique_labels]
 
-    plt.bar(range(len(unique_labels)), counts, color='skyblue')
+    # Calculate the positions of the bars with increased space
+    bar_positions = [i * 1.5 for i in range(len(unique_labels))]
+
+    plt.figure(figsize=(9, 6))
+    plt.bar(bar_positions, counts, width=1, color='skyblue')  # width is set to 0.8 to maintain the bar width
     plt.xlabel('Label')
     plt.ylabel('Frequency')
     plt.title('Bar Plot of Labels')
-    plt.xticks(range(len(unique_labels)), unique_labels)  # Set x-axis labels
+    plt.xticks(bar_positions, unique_labels)  # Set x-axis labels
     plt.show()
 
 def list_files(folder_path):
@@ -114,7 +119,7 @@ class LegoDataset(Dataset):
 
         return image, label
 
-batch_size = 32
+batch_size = 16
 num_workers = 2
 image_size = (520, 390)
 train_size = 0.7
@@ -126,6 +131,7 @@ image_paths = get_files()
 image_paths = list(filter(lambda x: "(" not in x, image_paths))
 labels = list(map(lambda x: int(x[x.rfind('_')+1:x.rfind('.')]), image_paths))
 
+print(len(image_paths))
 draw_bar_plot(labels)
 
 image_paths = np.asarray(image_paths)
@@ -160,22 +166,40 @@ test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=0,
 class CustomCNN(nn.Module):
     def __init__(self):
         super(CustomCNN, self).__init__()
-        self.conv1 = nn.Conv2d(3, 32, kernel_size=3)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3)
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=3)
-        self.conv6 = nn.Conv2d(256, 512, kernel_size=3)
-        self.conv5 = nn.Conv2d(512, 128, kernel_size=1)
-        self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.fc1 = nn.Linear(128*7*5, 1)
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(32, 64, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(64, 128, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(128, 256, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(256, 512, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(512, 1024, kernel_size=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+
+            nn.Conv2d(1024, 256, kernel_size=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+
+        self.fc1 = nn.Linear(256 * 3 * 2, 1)
 
     def forward(self, x):
-        x = self.pool(torch.relu(self.conv1(x)))
-        x = self.pool(torch.relu(self.conv2(x)))
-        x = self.pool(torch.relu(self.conv3(x)))
-        x = self.pool(torch.relu(self.conv4(x)))
-        x = self.pool(torch.relu(self.conv6(x)))
-        x = self.pool(torch.relu(self.conv5(x)))
+        x = self.features(x)
         x = torch.flatten(x, start_dim=1)
         x = self.fc1(x)
         return x.squeeze(1)
@@ -188,7 +212,7 @@ def summarize():
   # Summarize the model
   summary(model, input_size=(3, *image_size))
 
-summarize()
+# summarize()
 
 """# **Train the model:**"""
 
@@ -260,7 +284,7 @@ choice='2'
 model = CustomCNN()
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 100
+num_epochs = 50
 epoch=0
 train_history = {'loss': [], 'accuracy': []}
 val_history = {'loss': [], 'accuracy': []}
