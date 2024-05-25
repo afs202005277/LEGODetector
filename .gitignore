@@ -184,3 +184,7 @@ venv/
 project/samples-task1/samples
 project/generated_dataset/*
 project/dataset/*
+project/task3/datasets/*
+project/task3/results/*
+project/task3/results_2/*
+project/task3/runs/*
