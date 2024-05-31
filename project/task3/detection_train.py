@@ -38,6 +38,6 @@ for image in validation_images:
     os.rename(image_paths_file + image + '.xml', 'val_label/' + image + '.xml')'''
 
 #train yolo model
-model.train(data='datasets/vc/data.yaml', epochs=10, batch=16, )
+model.train(data='datasets/vc/data.yaml', epochs=10, batch=16)
     
     
