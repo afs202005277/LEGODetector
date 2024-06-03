@@ -2,10 +2,17 @@ from ultralytics import YOLO
 import os
 folder_name = "results"
 
-
-model = YOLO('best.pt')
-
 imgs = '../generated_dataset/'
 otherimgs = 'datasets/vc/images/val/'
 
-metrics = model.val(data='datasets/vc/data.yaml')
+model = YOLO('best_nano.pt')
+metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
+
+model = YOLO('best_small.pt')
+metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
+
+model = YOLO('best_medium_check.pt')
+metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
+
+model = YOLO('best_large_check.pt')
+metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
