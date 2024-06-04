@@ -266,6 +266,7 @@ def train_fasterrcnn(model,
                 "loss_objectness", 
                "loss_rpn_box_reg"]
     model.to(device)
+    best_val_loss = float('inf')
     for epoch in range(n_epochs):
         N = len(train_loader)
         for ix, batch in enumerate(train_loader):
@@ -280,7 +281,14 @@ def train_fasterrcnn(model,
             for ix, batch in enumerate(test_loader):
                 loss, losses = validate_batch(batch, model, 
                                          optimizer, device)
-                
+                if loss < best_val_loss:
+                    best_val_loss = loss
+                    save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
+                    torch.save(save_dict, "best.pth")
+
+	     	# Save latest model
+                save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
+                torch.save(save_dict, "last.pth")
                 # Record the current validation loss.
                 pos = epoch + (ix + 1) / N
                 log.record(pos = pos, val_loss = loss.item(), 
@@ -307,11 +315,11 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 # Create the DataLoaders from the Datasets. 
 train_dl = torch.utils.data.DataLoader(train_ds, 
-                                 batch_size = 4, 
+                                 batch_size = 2, 
                                  shuffle = True, 
                         collate_fn = collate_fn)
 val_dl = torch.utils.data.DataLoader(val_ds, 
-                             batch_size = 4, 
+                             batch_size = 2, 
                             shuffle = False, 
                     collate_fn = collate_fn)
 
@@ -327,9 +335,9 @@ optimizer = torch.optim.SGD(params,
 # Train the model over 1 epoch.
 log = train_fasterrcnn(model = model, 
                optimizer = optimizer, 
-                        n_epochs = 50,
+                        n_epochs = 20,
              train_loader = train_dl, 
                 test_loader = val_dl,
              log = None, keys = None,
                      device = device)
-
+                     
