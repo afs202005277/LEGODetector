@@ -332,7 +332,7 @@ optimizer = torch.optim.SGD(params,
                         lr = 0.005, 
                     momentum = 0.9, 
              weight_decay = 0.0005)
-# Train the model over 1 epoch.
+
 log = train_fasterrcnn(model = model, 
                optimizer = optimizer, 
                         n_epochs = 20,
