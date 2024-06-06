@@ -10,6 +10,7 @@ import os
 
 random.seed(42)
 DISPLAY = False
+GENERATE_SEGMENTATION_MASK = True
 WHITE = 200
 
 
@@ -146,7 +147,7 @@ def process_images_with_xml(folder_path):
                     cropped_image = segmented_img[y:y + h, x:x + w]
                 else:
                     cropped_image = final_img[y:y + h, x:x + w]
-                cv2.imwrite('individual_pieces/' + filename, cropped_image)
+                cv2.imwrite('datasets/individual_pieces/' + filename, cropped_image)
             else:
                 print("XML not found: " + xml_path)
 
@@ -234,23 +235,27 @@ def place_images_in_canvas(image_folder, canvas_size, num_pieces):
 
 
 def generate_individual_lego_pieces():
-    folder_path = "original_dataset/renders/1/"
+    folder_path = "datasets/original_dataset/renders/1/"
     process_images_with_xml(folder_path)
 
 
 def add_background(image):
     # Access the backgrounds folder and randomly pick an image
-    backgrounds_folder = "backgrounds"
+    backgrounds_folder = "datasets/backgrounds"
     background_files = os.listdir(backgrounds_folder)
     background_file = random.choice(background_files)
 
     # Load and resize the background image
     background_image = cv2.imread(os.path.join(backgrounds_folder, background_file))
     background_image = cv2.resize(background_image, (image.shape[1], image.shape[0]))
-
     mask = np.all((image == (WHITE, WHITE, WHITE)) | (image == (0, 0, 0)), axis=-1)
     image[mask] = background_image[mask]
-    return image
+    seg_image = None
+    if GENERATE_SEGMENTATION_MASK:
+        seg_image = np.ones_like(image)
+        seg_image[mask] = (255, 255, 255)
+    # display_images([image, seg_image], ['img', 'seg'])
+    return image, seg_image
 
 
 def enhance_image(image):
@@ -266,7 +271,7 @@ def enhance_image(image):
 
 
 def generate_group_images(num_pieces, augmentation_factor=1):
-    image_folder = "individual_pieces"
+    image_folder = "datasets/individual_pieces"
     final_image_size = (390, 520)
     result_image = place_images_in_canvas(image_folder, (
         round(final_image_size[0] * augmentation_factor), round(final_image_size[1] * augmentation_factor)), num_pieces)
@@ -274,12 +279,16 @@ def generate_group_images(num_pieces, augmentation_factor=1):
     if result_image is not None:
         result_image = convert_near_black_to_black(result_image)
 
-        result_image = add_background(result_image)
+        result_image, segmented_img = add_background(result_image)
         result_image = cv2.resize(result_image, final_image_size)
+        if segmented_img is not None:
+            segmented_img = cv2.resize(segmented_img, final_image_size)
         result_image = enhance_image(result_image)
         # display_images([result_image, ['pre'])
 
-        return result_image
+        return result_image, segmented_img
+    else:
+        return None, None
 
 
 def extract_max_counter(folder_path):
@@ -303,13 +312,20 @@ def extract_max_counter(folder_path):
 def generate_multiple_images(folder_path, num_images, num_pieces):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
+    if not os.path.exists(folder_path + '/photos'):
+        os.makedirs(folder_path + '/photos')
+    if not os.path.exists(folder_path + '/masks'):
+        os.makedirs(folder_path + '/masks')
     starting_id = extract_max_counter(folder_path) + 1
+    starting_id = 71204
     num_images_generated = 0
     aug_factor = 1
     while num_images_generated < num_images:
-        image = generate_group_images(num_pieces, aug_factor)
+        image, segmented = generate_group_images(num_pieces, aug_factor)
         if image is not None:
-            cv2.imwrite(f"{folder_path}/{starting_id}_{num_pieces}.jpg", image)
+            cv2.imwrite(f"{folder_path}/photos/{starting_id}_{num_pieces}.jpg", image)
+            if segmented is not None:
+                cv2.imwrite(f"{folder_path}/masks/{starting_id}_{num_pieces}.jpg", segmented)
             starting_id += 1
             num_images_generated += 1
         else:
@@ -407,8 +423,8 @@ def get_smallest_image_size(folder_path):
 
 
 def small_images():
-    delete_small_images('individual_pieces', 550)
-    smallest_size, dims, small_img = get_smallest_image_size('individual_pieces')
+    delete_small_images('datasets/individual_pieces', 550)
+    smallest_size, dims, small_img = get_smallest_image_size('datasets/individual_pieces')
     print(smallest_size, dims)
     display_images([small_img], ['small'])
 
@@ -429,15 +445,17 @@ def main():
     # generate_individual_lego_pieces()
     # generate_dataset('generated_data')
     # small_images()
+    generate_multiple_images('datasets/dani', 1200, 1)
+    return
     num_piece_range = range(1, 33)
-    image_counts = count_files_with_suffix('drive_dataset', num_piece_range)
+    image_counts = count_files_with_suffix('datasets/drive_dataset', num_piece_range)
     max_img = max(image_counts.values())
 
     for num_pieces in num_piece_range:
         current_img_count = image_counts[num_pieces]
         images_needed = max_img - current_img_count
         if images_needed > 0:
-            generate_multiple_images('missing', images_needed, num_pieces)
+            generate_multiple_images('datasets/missing', images_needed, num_pieces)
             print(f"Generated {images_needed} images with {num_pieces} pieces each.")
 
 
@@ -467,4 +485,5 @@ def chunk_folder(folder_path, num_chunks):
 if __name__ == '__main__':
     # post_process_pieces('individual_pieces')
     # blacklist_pieces('individual_pieces')
-    chunk_folder('generated_dataset', 7)
+    # chunk_folder('generated_dataset', 7)
+    main()
