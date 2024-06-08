@@ -4,7 +4,7 @@ from torchvision.models.detection import FasterRCNN
 from torchvision.transforms import transforms
 import os
 import numpy as np
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, average_precision_score
 from tqdm import tqdm
 import torch.optim as optim
 import torch.nn as nn
@@ -19,6 +19,7 @@ from torch_snippets import Report
 import torchvision.transforms.functional as F
 import torchvision.transforms.transforms as T
 import xml.etree.ElementTree as ET
+import matplotlib.patches as patches
 
 class Compose:
     """
@@ -99,26 +100,27 @@ def xml_to_dict(xml_path):
     root = tree.getroot()
     # Return the image size, object label and bounding box 
     # coordinates together with the filename as a dict.
+    root.find
     return {"filename": xml_path,
             "image_width": int(root.find("./size/width").text),
             "image_height": int(root.find("./size/height").text),
             "image_channels": int(root.find("./size/depth").text),
-            "label": root.find("./object/name").text,
-            "x1": int(root.find("./object/bndbox/xmin").text),
-            "y1": int(root.find("./object/bndbox/ymin").text),
-            "x2": int(root.find("./object/bndbox/xmax").text),
-            "y2": int(root.find("./object/bndbox/ymax").text)}
+            "labels": [label.text for label in root.findall("./object/name")],
+            "x1s": [int(x1.text) for x1 in root.findall("./object/bndbox/xmin")],
+            "y1s": [int(y1.text) for y1 in root.findall("./object/bndbox/ymin")],
+            "x2s": [int(x2.text) for x2 in root.findall("./object/bndbox/xmax")],
+            "y2s": [int(y2.text) for y2 in root.findall("./object/bndbox/ymax")]}
 
 
 label_dict = {"lego": 1, "legod": 1}
 reverse_label_dict = {1: "lego"}
 
 class LegoDataset(torch.utils.data.Dataset):
-    def __init__(self, root, train=False, transforms = None):
-
+    def __init__(self, root, train=0, transforms = None):
+        modes = ["train/", "val/", "test/"]
         self.root = root
         self.transforms = transforms
-        self.train = "train/" if train else "val/"
+        self.train = modes[train]
         self.files = sorted(os.listdir(self.root + "images/" + self.train))
         for i in range(len(self.files)):
             self.files[i] = self.files[i].split(".")[0]
@@ -128,16 +130,21 @@ class LegoDataset(torch.utils.data.Dataset):
         img = Image.open(os.path.join(self.root, 
               "images/" + self.train + self.files[i] + ".jpg")).convert("RGB")
         # Load annotation file from the hard disc.
-        ann = xml_to_dict(os.path.join('../dataset/', self.files[i] + ".xml"))
+        ann = xml_to_dict(os.path.join('../dataset/', self.files[i] + ".xml"))            
         # The target is given as a dict.
         target = {}
-        target["boxes"] = torch.as_tensor([[float(ann["x1"]), 
-                                           float(ann["y1"]), 
-                                           float(ann["x2"]), 
-                                           float(ann["y2"])]], 
-                                          dtype=torch.float32)
-        target["labels"]=torch.as_tensor([label_dict[ann["label"]]], dtype = torch.int64)
-        target["image_id"] = torch.as_tensor(i)
+        target["boxes"] = []
+        target["boxes"] = torch.as_tensor([], dtype=torch.float32).reshape(0, 4)
+        target["labels"]=torch.as_tensor([], dtype = torch.int64)
+        
+        for i in range(len(ann["labels"])):
+            target['boxes'] = torch.cat([target['boxes'], torch.as_tensor([float(ann["x1s"][i]), 
+                                           float(ann["y1s"][i]), 
+                                           float(ann["x2s"][i]), 
+                                           float(ann["y2s"][i])], 
+                                          dtype=torch.float32).unsqueeze(0)], 0)
+            target['labels'] = torch.cat((target['labels'], torch.as_tensor(label_dict[ann["labels"][i]], dtype = torch.int64).unsqueeze(0)), 0)
+            
         # Apply any transforms to the data if required.
         if self.transforms is not None:
             img, target = self.transforms(img, target)
@@ -163,19 +170,6 @@ def get_transform():
     return Compose(transforms)
 
 def unbatch(batch, device):
-    """
-    Unbatches a batch of data from the Dataloader.
-    Inputs
-        batch: tuple
-            Tuple containing a batch from the Dataloader.
-        device: str
-            Indicates which device (CPU/GPU) to use.
-    Returns
-        X: list
-            List of images.
-        y: list
-            List of dictionaries.
-    """
     X, y = batch
     X = [x.to(device) for x in X]
     y = [{k: v.to(device) for k, v in t.items()} for t in y]
@@ -206,21 +200,6 @@ def train_batch(batch, model, optimizer, device):
     return loss, losses
 @torch.no_grad()
 def validate_batch(batch, model, optimizer, device):
-    """
-    Evaluates a model's loss value using validation data.
-    Inputs
-        batch: tuple
-            Tuple containing a batch from the Dataloader.
-        model: torch model
-        optimizer: torch optimizer
-        device: str
-            Indicates which device (CPU/GPU) to use.
-    Returns
-        loss: float
-            Sum of the batch losses.
-        losses: dict
-            Dictionary containing the individual losses.
-    """
     model.train()
     X, y = unbatch(batch, device = device)
     optimizer.zero_grad()
@@ -296,6 +275,57 @@ def train_fasterrcnn(model,
     log.report_avgs(epoch + 1)
     return log
 
+@torch.no_grad()
+def predict_batch(batch, model, device):
+    model.to(device)
+    model.eval()
+    X, y = unbatch(batch, device = device)
+    predictions = model(X)
+    return predictions, y
+def predict(model, data_loader, device = "cpu"):
+    images = []
+    predictions = []
+    for i, batch in enumerate(data_loader):
+        if i == 50:
+            break
+        X, p = predict_batch(batch, model, device)
+        images = images + X
+        predictions = predictions + p
+    
+    return images, predictions
+
+
+def decode_prediction(prediction, 
+                      score_threshold = 0.8, 
+                      nms_iou_threshold = 0.2):
+    """
+    Inputs
+        prediction: dict
+        score_threshold: float
+        nms_iou_threshold: float
+    Returns
+        prediction: tuple
+    """
+    boxes = prediction["boxes"]
+    scores = prediction["scores"]
+    labels = prediction["labels"]
+    # Remove any low-score predictions.
+    if score_threshold is not None:
+        want = scores > score_threshold
+        boxes = boxes[want]
+        scores = scores[want]
+        labels = labels[want]
+    # Remove any overlapping bounding boxes using NMS.
+    if nms_iou_threshold is not None:
+        want = torchvision.ops.nms(boxes = boxes, scores = scores, 
+                                iou_threshold = nms_iou_threshold)
+        boxes = boxes[want]
+        scores = scores[want]
+        labels = labels[want]
+    return (boxes.cpu().numpy(), 
+            labels.cpu().numpy(), 
+            scores.cpu().numpy())
+
 # Load the pre-trained Faster R-CNN model
 model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights='DEFAULT')
 
@@ -304,11 +334,14 @@ validation_targets = []
 names = [x.split('.')[0] for x in os.listdir(images_path + 'train/')]
 training_images = [images_path + 'train/' + x for x in os.listdir(images_path + 'train/')]
 validation_images = [images_path + 'val/' + x for x in os.listdir(images_path + 'val/')]
+test_images = [images_path + 'test/' + x for x in os.listdir(images_path + 'test/')]
 
 
-train_ds = LegoDataset(root_path, train = True, transforms=get_transform())
+train_ds = LegoDataset(root_path, train = 0, transforms=get_transform())
 
-val_ds = LegoDataset(root_path, train = False, transforms=get_transform())
+val_ds = LegoDataset(root_path, train = 1, transforms=get_transform())
+
+test_ds = LegoDataset(root_path, train = 2, transforms=get_transform())
 
 # Collate image-target pairs into a tuple.
 def collate_fn(batch):
@@ -323,6 +356,11 @@ val_dl = torch.utils.data.DataLoader(val_ds,
                             shuffle = False, 
                     collate_fn = collate_fn)
 
+test_dl = torch.utils.data.DataLoader(test_ds, 
+                              batch_size = 1, 
+                             shuffle = False, 
+                     collate_fn = collate_fn)
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = get_object_detection_model(num_classes = 2,   
                         feature_extraction = False)
@@ -333,11 +371,64 @@ optimizer = torch.optim.SGD(params,
                     momentum = 0.9, 
              weight_decay = 0.0005)
 
-log = train_fasterrcnn(model = model, 
+'''log = train_fasterrcnn(model = model, 
                optimizer = optimizer, 
                         n_epochs = 20,
              train_loader = train_dl, 
                 test_loader = val_dl,
              log = None, keys = None,
                      device = device)
-                     
+                     '''
+
+
+
+def IOU(box1, box2):
+	""" We assume that the box follows the format:
+		box1 = [x1,y1,x2,y2], and box2 = [x3,y3,x4,y4],
+		where (x1,y1) and (x3,y3) represent the top left coordinate,
+		and (x2,y2) and (x4,y4) represent the bottom right coordinate """
+	x1, y1, x2, y2 = box1	
+	x3, y3, x4, y4 = box2
+	x_inter1 = max(x1, x3)
+	y_inter1 = max(y1, y3)
+	x_inter2 = min(x2, x4)
+	y_inter2 = min(y2, y4)
+	width_inter = abs(x_inter2 - x_inter1)
+	height_inter = abs(y_inter2 - y_inter1)
+	area_inter = width_inter * height_inter
+	width_box1 = abs(x2 - x1)
+	height_box1 = abs(y2 - y1)
+	width_box2 = abs(x4 - x3)
+	height_box2 = abs(y4 - y3)
+	area_box1 = width_box1 * height_box1
+	area_box2 = width_box2 * height_box2
+	area_union = area_box1 + area_box2 - area_inter
+	iou = area_inter / area_union
+	return iou
+
+#load model
+checkpoint = torch.load('best.pth')
+model.load_state_dict(checkpoint['model'])
+
+accs = []
+
+for ix, batch in enumerate(test_dl):
+    pred, true = predict_batch(batch, model, device)
+    boxes_pred, _, _ = decode_prediction(pred[0])
+    boxes_true = true[0]['boxes'].cpu().numpy()
+    n = len(boxes_true)
+    match = 0
+    for box in boxes_pred:
+        for true_box in boxes_true:
+            iou = IOU(box, true_box)
+            if iou > 0.8:
+                match += 1
+                boxes_true = np.delete(boxes_true, np.where(boxes_true == true_box)[0], axis=0)
+                break
+    accs.append(match / n)
+
+    
+    
+map = sum(accs) / len(accs)
+
+print(map)
