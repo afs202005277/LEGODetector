@@ -52,6 +52,21 @@ def save_dict_to_file(data, filename):
   with open(filename, 'w') as file:
     json.dump(data, file)
     
+class PixelAccuracyLoss(nn.Module):
+    def __init__(self):
+        super(PixelAccuracyLoss, self).__init__()
+
+    def forward(self, outputs, targets):
+        # Ensure the outputs and targets are of the same shape
+        assert outputs.shape == targets.shape, "Shape mismatch between outputs and targets"
+
+        # Count the number of correctly predicted pixels
+        correct_pixels = (outputs == targets)
+        
+        print(outputs.numel() - correct_pixels.sum())
+
+        return outputs.numel() - correct_pixels.sum()
+    
 """# **Dataset:**"""
 
 class LegoDataset(Dataset):
@@ -78,10 +93,10 @@ class LegoDataset(Dataset):
 
 
 masks = [f.split('.')[0] for f in os.listdir('../masks') if f.endswith('.jpg')]
-images = [f.split('.')[0] for f in os.listdir('../seg_dataset') if f.endswith('.jpg')]
+images = [f.split('.')[0] for f in os.listdir('../generated_dataset') if f.endswith('.jpg')]
 images = list(set(images).intersection(masks))
 
-random.shuffle(images)
+
 train_images = images[:int(len(images)*0.7)]
 validation_images = images[int(len(images)*0.7):int(len(images)*0.8)]
 test_images = images[int(len(images)*0.8):]
@@ -103,11 +118,11 @@ mask_transform = transforms.Compose([
     transforms.Lambda(lambda x: x.view(x.size(0), -1)),
 ])
 
-train_images_names = [ '../seg_dataset/' + f + '.jpg' for f in train_images]
+train_images_names = [ '../generated_dataset/' + f + '.jpg' for f in train_images]
 train_masks_names = [ '../masks/' + f + '.jpg' for f in train_images]
-validation_images_names = [ '../seg_dataset/' + f + '.jpg' for f in validation_images]
+validation_images_names = [ '../generated_dataset/' + f + '.jpg' for f in validation_images]
 validation_masks_names = [ '../masks/' + f + '.jpg' for f in validation_images]
-test_images_names = [ '../seg_dataset/' + f + '.jpg' for f in test_images]
+test_images_names = [ '../generated_dataset/' + f + '.jpg' for f in test_images]
 test_masks_names = [ '../masks/' + f + '.jpg' for f in test_images]
 
 train_dataset = LegoDataset(train_images_names, train_masks_names, transform=transform, mask_transform=mask_transform)
@@ -116,7 +131,7 @@ test_dataset = LegoDataset(test_images_names, test_masks_names, transform=transf
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
 valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=num_workers, shuffle=False)
 
 
 vgg16 = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
@@ -141,7 +156,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 learning_rate = 0.0001
-loss_fn = nn.L1Loss()
+loss_fn = PixelAccuracyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 """# **Train the model:**"""
@@ -249,4 +264,47 @@ num_epochs_to_unfreeze = 5
 train_history, val_history = train(model, num_epochs, train_dataloader, valid_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze)
 
 #plotTrainingHistory(train_history, val_history)
+
+"""Test the model"""
+
+'''vgg16 = models.vgg16(weights=VGG16_Weights.IMAGENET1K_V1)
+
+for param in vgg16.parameters():
+    param.requires_grad = False
+
+num_ftrs = vgg16.classifier[6].in_features
+vgg16.classifier[6] = nn.Linear(num_ftrs, 200 * 100)
+
+for param in vgg16.classifier[6].parameters():
+    param.requires_grad = True
+
+model = vgg16
+model.to(device)
+checkpoint = torch.load('vgg16_seg_0001_un_best_model.pth')
+model.load_state_dict(checkpoint['model'])
+criterion = PixelAccuracyLoss()
+test_loss, test_acc, _, _ = epoch_iter(test_dataloader, model, criterion, is_train=False)
+print(f'\nTest Loss: {test_loss:.3f} \nTest Accuracy: {test_acc:.3f}')
+
+for batch, (X, y) in enumerate(tqdm(test_dataloader)):
+    X, y = X.to(device), y.to(device)
+
+    pred = model(X).unsqueeze(1)
+    
+    reshaped_tensor = pred.view(image_size[0], image_size[1])
+    true_mask = y.view(image_size[0], image_size[1])
+
+    # Define the reverse transform
+    reverse_transform = transforms.Compose([
+        transforms.ToPILImage()
+    ])
+
+    # Apply the reverse transform to get the image
+    mask_image = reverse_transform(reshaped_tensor)
+    true_mask_image = reverse_transform(true_mask)
+
+    mask_image.save('here.png')
+    true_mask_image.save('true.png')'''
+    
+
             
