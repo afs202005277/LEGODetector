@@ -88,7 +88,7 @@ test_images = images[int(len(images)*0.8):]
 
 batch_size = 16
 num_workers = 0
-image_size = (520, 390)
+image_size = (200, 100)
 
 transform = transforms.Compose([
     transforms.Resize(image_size),
@@ -125,7 +125,7 @@ for param in vgg16.parameters():
     param.requires_grad = False
 
 num_ftrs = vgg16.classifier[6].in_features
-vgg16.classifier[6] = nn.Linear(num_ftrs, 520 * 390)
+vgg16.classifier[6] = nn.Linear(num_ftrs, 200 * 100)
 
 for param in vgg16.classifier[6].parameters():
     param.requires_grad = True
@@ -138,7 +138,6 @@ val_history_file = plot_data + "vgg16_seg_0001_un_val_history.json"
     
 model = vgg16
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = nn.DataParallel(model)
 model.to(device)
 
 learning_rate = 0.0001
@@ -238,16 +237,16 @@ def train(model, num_epochs, train_dataloader, validation_dataloader, loss_fn, o
         val_history["loss"].append(val_loss)
         val_history["accuracy"].append(val_acc)
 
-        save_dict_to_file(train_history, train_history_file)
-        save_dict_to_file(val_history, val_history_file)
+        #save_dict_to_file(train_history, train_history_file)
+        #save_dict_to_file(val_history, val_history_file)
 
     print("Finished")
     return train_history, val_history
 
 num_epochs = 50
-num_epochs_to_unfreeze = 10
+num_epochs_to_unfreeze = 5
 
-train_history, val_history = train(model, num_epochs, train_dataloader, valid_dataloader, loss, optimizer, num_epochs_to_unfreeze)
+train_history, val_history = train(model, num_epochs, train_dataloader, valid_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze)
 
-plotTrainingHistory(train_history, val_history)
+#plotTrainingHistory(train_history, val_history)
             

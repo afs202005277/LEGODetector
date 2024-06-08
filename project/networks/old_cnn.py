@@ -156,7 +156,7 @@ test_dataset = LegoDataset(test_paths, test_labels, transform=transform)
 
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
 valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-test_dataloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+test_dataloader = DataLoader(test_dataset, batch_size=1, num_workers=num_workers, shuffle=False)
 
 """# **Model:**"""
 
@@ -260,10 +260,9 @@ print("2: Start new one")
 choice = "2"
 
 model = CustomCNN()
-model = nn.DataParallel(model)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-num_epochs = 30
+num_epochs = 100
 epoch=0
 train_history = {'loss': [], 'accuracy': []}
 val_history = {'loss': [], 'accuracy': []}
