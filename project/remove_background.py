@@ -316,8 +316,7 @@ def generate_multiple_images(folder_path, num_images, num_pieces):
         os.makedirs(folder_path + '/photos')
     if not os.path.exists(folder_path + '/masks'):
         os.makedirs(folder_path + '/masks')
-    starting_id = extract_max_counter(folder_path) + 1
-    starting_id = 71204
+    starting_id = extract_max_counter(folder_path + '/photos') + 1
     num_images_generated = 0
     aug_factor = 1
     while num_images_generated < num_images:
@@ -325,12 +324,12 @@ def generate_multiple_images(folder_path, num_images, num_pieces):
         if image is not None:
             cv2.imwrite(f"{folder_path}/photos/{starting_id}_{num_pieces}.jpg", image)
             if segmented is not None:
+                segmented = cv2.bitwise_not(segmented)
                 cv2.imwrite(f"{folder_path}/masks/{starting_id}_{num_pieces}.jpg", segmented)
             starting_id += 1
             num_images_generated += 1
         else:
             aug_factor += 0.2
-            pass
 
 
 def generate_dataset(folder_path):
@@ -445,8 +444,6 @@ def main():
     # generate_individual_lego_pieces()
     # generate_dataset('generated_data')
     # small_images()
-    generate_multiple_images('datasets/dani', 1200, 1)
-    return
     num_piece_range = range(1, 33)
     image_counts = count_files_with_suffix('datasets/drive_dataset', num_piece_range)
     max_img = max(image_counts.values())
@@ -458,9 +455,13 @@ def main():
             generate_multiple_images('datasets/missing', images_needed, num_pieces)
             print(f"Generated {images_needed} images with {num_pieces} pieces each.")
 
+    generate_multiple_images('datasets/missing', 1200, 1)
+
 
 def chunk_folder(folder_path, num_chunks):
     files = os.listdir(folder_path)
+    last_1200_elements = files[-1200:]
+    files = files[:-1200]
     num_files = len(files)
 
     # Calculate approximate number of files per chunk
@@ -481,9 +482,19 @@ def chunk_folder(folder_path, num_chunks):
             file_path = os.path.join(folder_path, file_name)
             shutil.copy(file_path, chunk_dir)
 
+    files = os.listdir(folder_path)[:1200]
+    chunk_dir = os.path.join('chunks', f"chunk_8")
+    os.makedirs(chunk_dir, exist_ok=True)
+    chunk_files = last_1200_elements
+
+    # Copy files to chunk folder
+    for file_name in chunk_files:
+        file_path = os.path.join(folder_path, file_name)
+        shutil.copy(file_path, chunk_dir)
+
 
 if __name__ == '__main__':
     # post_process_pieces('individual_pieces')
     # blacklist_pieces('individual_pieces')
-    # chunk_folder('generated_dataset', 7)
-    main()
+    chunk_folder('datasets/missing/photos', 7)
+    # main()
