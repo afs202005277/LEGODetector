@@ -183,7 +183,9 @@ venv/
 *.csv
 project/samples-task1/samples
 project/generated_dataset/*
+project/seg_dataset/*
 project/dataset/*
+project/masks/*
 project/task3/datasets/*
 project/task3/results/*
 project/task3/results_2/*
