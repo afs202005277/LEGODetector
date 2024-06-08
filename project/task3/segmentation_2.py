@@ -80,8 +80,8 @@ class LegoDataset(Dataset):
 masks = [f.split('.')[0] for f in os.listdir('../masks') if f.endswith('.jpg')]
 images = [f.split('.')[0] for f in os.listdir('../seg_dataset') if f.endswith('.jpg')]
 images = list(set(images).intersection(masks))
+print(len(images))
 
-random.shuffle(images)
 train_images = images[:int(len(images)*0.7)]
 validation_images = images[int(len(images)*0.7):int(len(images)*0.8)]
 test_images = images[int(len(images)*0.8):]
@@ -140,7 +140,7 @@ model = vgg16
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-learning_rate = 0.0001
+learning_rate = 0.00005
 loss_fn = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -243,7 +243,7 @@ def train(model, num_epochs, train_dataloader, validation_dataloader, loss_fn, o
     print("Finished")
     return train_history, val_history
 
-num_epochs = 50
+num_epochs = 70
 num_epochs_to_unfreeze = 5
 
 train_history, val_history = train(model, num_epochs, train_dataloader, valid_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze)
