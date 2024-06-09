@@ -11,8 +11,8 @@ metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
 model = YOLO('best_small.pt')
 metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
 
-model = YOLO('best_medium_check.pt')
+model = YOLO('best_medium.pt')
 metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)
 
-model = YOLO('best_large_check.pt')
+model = YOLO('best_large.pt')
 metrics = model.val(data='datasets/vc/data.yaml', split="test", batch=1)

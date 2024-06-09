@@ -78,7 +78,7 @@ class LegoDataset(Dataset):
 
 
 masks = [f.split('.')[0] for f in os.listdir('../masks') if f.endswith('.jpg')]
-images = [f.split('.')[0] for f in os.listdir('../generated_dataset') if f.endswith('.jpg')]
+images = [f.split('.')[0] for f in os.listdir('../seg_dataset') if f.endswith('.jpg')]
 images = list(set(images).intersection(masks))
 print(len(images))
 
@@ -104,11 +104,11 @@ mask_transform = transforms.Compose([
     transforms.Lambda(lambda x: x.view(x.size(0), -1)),
 ])
 
-train_images_names = [ '../generated_dataset/' + f + '.jpg' for f in train_images]
+train_images_names = [ '../seg_dataset/' + f + '.jpg' for f in train_images]
 train_masks_names = [ '../masks/' + f + '.jpg' for f in train_images]
-validation_images_names = [ '../generated_dataset/' + f + '.jpg' for f in validation_images]
+validation_images_names = [ '../seg_dataset/' + f + '.jpg' for f in validation_images]
 validation_masks_names = [ '../masks/' + f + '.jpg' for f in validation_images]
-test_images_names = [ '../generated_dataset/' + f + '.jpg' for f in test_images]
+test_images_names = [ '../seg_dataset/' + f + '.jpg' for f in test_images]
 test_masks_names = [ '../masks/' + f + '.jpg' for f in test_images]
 
 train_dataset = LegoDataset(train_images_names, train_masks_names, transform=transform, mask_transform=mask_transform)
