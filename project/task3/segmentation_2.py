@@ -51,22 +51,7 @@ def plotTrainingHistory(train_history, val_history):
 def save_dict_to_file(data, filename):
   with open(filename, 'w') as file:
     json.dump(data, file)
-    
-class PixelAccuracyLoss(nn.Module):
-    def __init__(self):
-        super(PixelAccuracyLoss, self).__init__()
-
-    def forward(self, outputs, targets):
-        # Ensure the outputs and targets are of the same shape
-        assert outputs.shape == targets.shape, "Shape mismatch between outputs and targets"
-
-        # Count the number of correctly predicted pixels
-        correct_pixels = (outputs == targets)
-        
-        print(outputs.numel() - correct_pixels.sum())
-
-        return outputs.numel() - correct_pixels.sum()
-    
+     
 """# **Dataset:**"""
 
 class LegoDataset(Dataset):
@@ -148,16 +133,14 @@ for param in vgg16.classifier[6].parameters():
     
 best_model_file = models_folder + "vgg16_seg_0001_un_best_model.pth"
 latest_model_file = models_folder + "vgg16_seg_0001_un_latest_model.pth"
-
-train_history_file = plot_data + "vgg16_seg_0001_un_train_history.json"
-val_history_file = plot_data + "vgg16_seg_0001_un_val_history.json"
     
 model = vgg16
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 learning_rate = 0.0001
-loss_fn = PixelAccuracyLoss()
+loss_fn = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 """# **Train the model:**"""
 
@@ -214,8 +197,6 @@ def epoch_iter(dataloader, model, loss_fn, optimizer=None, is_train=True):
     return total_loss / num_batches, mean_absolute_error(labels, preds), labels, preds
 
 def train(model, num_epochs, train_dataloader, validation_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze = -1, switch_treshold = 1):
-    train_history = {'loss': [], 'accuracy': []}
-    val_history = {'loss': [], 'accuracy': []}
     best_val_loss = float('inf')
 
     print("Start training...")
@@ -229,11 +210,32 @@ def train(model, num_epochs, train_dataloader, validation_dataloader, loss_fn, o
 
         # Train model for one iteration on training data
         train_loss, train_acc, _a, _b = epoch_iter(train_dataloader, model, loss_fn, optimizer)
-        print(f"Train loss: {train_loss:.3f} \t Train acc: {train_acc:.3f}")
+        print(f"Train loss: {train_loss:.3f} \t Train MAE: {train_acc:.3f}")
 
         # Evaluate model on validation data
         val_loss, val_acc, _a, _b = epoch_iter(valid_dataloader, model, loss_fn, None, is_train=False)
-        print(f"Val loss: {val_loss:.3f} \t Val acc: {val_acc:.3f}")
+        print(f"Val loss: {val_loss:.3f} \t Val MAE: {val_acc:.3f}")
+        
+        for batch, (X, y) in enumerate(tqdm(test_dataloader)):
+            X, y = X.to(device), y.to(device)
+
+            pred = model(X).unsqueeze(1)
+            
+            reshaped_tensor = pred.view(image_size[0], image_size[1])
+            true_mask = y.view(image_size[0], image_size[1])
+
+            # Define the reverse transform
+            reverse_transform = transforms.Compose([
+                transforms.ToPILImage()
+            ])
+
+            # Apply the reverse transform to get the image
+            mask_image = reverse_transform(reshaped_tensor)
+            true_mask_image = reverse_transform(true_mask)
+
+            mask_image.save('here1.png')
+            true_mask_image.save('here2.png')
+            break
 
         # Save model when validation loss improves
         if val_loss < best_val_loss:
@@ -245,23 +247,12 @@ def train(model, num_epochs, train_dataloader, validation_dataloader, loss_fn, o
         save_dict = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': t}
         torch.save(save_dict, latest_model_file)
 
-        # Save training history for plotting purposes
-        train_history["loss"].append(train_loss)
-        train_history["accuracy"].append(train_acc)
-
-        val_history["loss"].append(val_loss)
-        val_history["accuracy"].append(val_acc)
-
-        #save_dict_to_file(train_history, train_history_file)
-        #save_dict_to_file(val_history, val_history_file)
-
     print("Finished")
-    return train_history, val_history
 
 num_epochs = 70
 num_epochs_to_unfreeze = 5
 
-train_history, val_history = train(model, num_epochs, train_dataloader, valid_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze)
+train(model, num_epochs, train_dataloader, valid_dataloader, loss_fn, optimizer, num_epochs_to_unfreeze)
 
 #plotTrainingHistory(train_history, val_history)
 
