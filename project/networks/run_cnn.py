@@ -84,10 +84,10 @@ def get_tarnsformer(model_name):
         ])
 
 
-def get_model(model_name, path_to_model):
+def get_model(model_name, path_to_model, device):
     if model_name == 'custom':
         model = CustomCNN()
-    elif model_name == 'vgg16':
+    elif model_name == 'vgg':
         model = models.vgg16()
         num_ftrs = model.classifier[6].in_features
         model.classifier[6] = nn.Linear(num_ftrs, 1)
@@ -104,16 +104,15 @@ def get_model(model_name, path_to_model):
         model = nn.DataParallel(model)
     elif model_name == 'efficientnet':
         model = models.efficientnet_v2_s()
-        num_ftrs = model.classifier.in_features
-        model.classifier = nn.Linear(num_ftrs, 1)
+        num_ftrs = model.classifier[1].in_features
+        model.classifier[1] = nn.Linear(num_ftrs, 1)
         model = nn.DataParallel(model)
     else:
         raise ValueError('Model not supported')
 
-    checkpoint = torch.load(path_to_model)
-    model.load_state_dict(checkpoint['model_state_dict'])
-
-    return model
+    checkpoint = torch.load(path_to_model, map_location=torch.device(device))
+    model.load_state_dict(checkpoint['model'])
+    return model.to(device)
 
 
 def epoch_iter(dataloader, model, device, model_name):
@@ -138,7 +137,6 @@ def epoch_iter(dataloader, model, device, model_name):
         preds_int = list(map(lambda x: max(int(x + 0.5), 1), preds))
     else:
         preds_int = list(map(lambda x: max(int(x[0] + 0.5), 1), preds))
-
     return preds_int
 
 
@@ -151,17 +149,16 @@ def get_json_file(filename):
 def main(args):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    path_imgs = get_json_file(args.img_folder)
+    path_imgs = get_json_file(args.input_json)
     dataset = LegoDataset(path_imgs, transform=get_tarnsformer(args.model_name))
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
 
-    model = get_model(args.model_name, args.path_to_model)
-    model.to(device)
+    model = get_model(args.model_name, args.path_to_model, device)
 
     preds = epoch_iter(dataloader, model, device, args.model_name)
 
     with open(args.output_json, 'w') as file:
-        json.dump(preds, file)
+        json.dump(preds, file, indent=4)
 
 
 if __name__ == '__main__':
