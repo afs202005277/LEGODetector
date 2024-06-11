@@ -157,8 +157,10 @@ def main(args):
 
     preds = epoch_iter(dataloader, model, device, args.model_name)
 
+    preds_json = {path: pred for path, pred in zip(path_imgs, preds)}
+
     with open(args.output_json, 'w') as file:
-        json.dump(preds, file, indent=4)
+        json.dump(preds_json, file, indent=4)
 
 
 if __name__ == '__main__':
